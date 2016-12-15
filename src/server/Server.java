@@ -79,13 +79,14 @@ public class Server implements ClientConnectionListener, ClientMessageListener {
 	@Override
 	public void clientMessageReceived(TextMessage message) {
 		if (message.getMessage().length() < 1000) {
+			System.out.println(message.getTimeNameMessage());
 			if (message.getMessage().contains(KICKPHRASE)) {
 				String nameOfKickedChatMember = message.getMessage().replaceAll("\n", "")
 						.substring(message.getMessage().lastIndexOf(KICKPHRASE) + 1);
 				for (ClientConnection client : clients) {
 					if (client.getName().equals(nameOfKickedChatMember)) {
 						try {
-							client.sendMessage(new TextMessage("*You've been kicked*", "Server", Color.RED));
+							client.sendMessage(new TextMessage("*You've been kicked*", "Server", Color.RED, null));
 						} catch (IOException e) {
 							e.printStackTrace();
 						}
@@ -119,7 +120,7 @@ public class Server implements ClientConnectionListener, ClientMessageListener {
 	public void stop() throws IOException {
 		for (ClientConnection cc : clients) {
 			try {
-				cc.sendMessage(new TextMessage("*This Chat is closed*", "Server", Color.RED));
+				cc.sendMessage(new TextMessage("*This Chat is closed*", "Server", Color.RED, null));
 			} catch (IOException e) {
 			}
 		}

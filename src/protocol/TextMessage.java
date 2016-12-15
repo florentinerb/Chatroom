@@ -9,13 +9,15 @@ import java.util.Date;
 public class TextMessage implements Serializable {
 	private String message;
 	private Date time;
-	private String name;
+	private String senderName;
 	private Color color;
+	private String receiverName;
 
-	public TextMessage(String message, String name, Color color) {
+	public TextMessage(String message, String name, Color color, String receiverName) {
 		this.message = message;
-		this.name = name;
+		this.senderName = name;
 		this.color = color;
+		this.receiverName = receiverName;
 		time = new Date();
 	}
 
@@ -34,14 +36,18 @@ public class TextMessage implements Serializable {
 	}
 
 	public String getTimeNameMessage() {
-		return MessageFormat.format("{0} - {1} : {2}", getTime(), name, message);
+		return MessageFormat.format("{0} - {1} : {2}", getTime(), senderName, message);
 	}
 
 	public String getMessage() {
 		return message;
 	}
 
-	public String getName() {
-		return name;
+	public String getSenderName() {
+		return senderName;
+	}
+	
+	public String getReceiverName() {
+		return receiverName;
 	}
 }

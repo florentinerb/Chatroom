@@ -58,23 +58,20 @@ class AutoreplaceingEmojiFeed extends JTextPane {
 		final String path = "client/gui/emojiImages";
 		final File jarFile = new File(getClass().getProtectionDomain().getCodeSource().getLocation().getPath());
 		try {
-			// Run with JAR files
 			if (jarFile.isFile()) {
-				System.out.println("jaaar");
+				// Run with JAR file
 				JarFile jar;
 				jar = new JarFile(jarFile);
 				final Enumeration<JarEntry> entries = jar.entries();
 				while (entries.hasMoreElements()) {
 					final String name = entries.nextElement().getName();
 					if (name.startsWith(path + "/")) {
-						System.out.println("EmojiFeed: " + name);
 						emojiImages.add(new File(name));
 					}
 				}
 				jar.close();
-				// Run in IDE
 			} else {
-				System.out.println("IDE");
+				// Run in IDE
 				final URL url = Launcher.class.getResource("/" + path + "/");
 				if (url != null) {
 					final File apps = new File(url.toURI());

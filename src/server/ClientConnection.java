@@ -92,11 +92,22 @@ class ClientConnection implements Runnable {
 	}
 
 	public void sendMessage(TextMessage message) throws IOException {
-		try {
-			out.writeObject(edtm.sealTextMessage(message));
-		} catch (InvalidKeyException | NoSuchAlgorithmException | NoSuchPaddingException e) {
-			e.printStackTrace();
+		if (message.getReceiverName() == null) {
+			try {
+				out.writeObject(edtm.sealTextMessage(message));
+			} catch (InvalidKeyException | NoSuchAlgorithmException | NoSuchPaddingException e) {
+				e.printStackTrace();
+			}
+		} else {
+			if (message.getReceiverName().equals(name) || message.getSenderName().equals(name)) {
+				try {
+					out.writeObject(edtm.sealTextMessage(message));
+				} catch (InvalidKeyException | NoSuchAlgorithmException | NoSuchPaddingException e) {
+					e.printStackTrace();
+				}
+			}
 		}
+
 	}
 
 	public void sendTypingState(TypingState typingState) throws IOException {

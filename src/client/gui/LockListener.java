@@ -43,7 +43,6 @@ class LockListener implements WindowProc {
 				null, hInst, null);
 
 		getLastError();
-		System.out.println("window sucessfully created! window hwnd: " + hWnd.getPointer().toString());
 
 		Wtsapi32.INSTANCE.WTSRegisterSessionNotification(hWnd, Wtsapi32.NOTIFY_FOR_THIS_SESSION);
 
@@ -58,7 +57,6 @@ class LockListener implements WindowProc {
 		Wtsapi32.INSTANCE.WTSUnRegisterSessionNotification(hWnd);
 		User32.INSTANCE.UnregisterClass(windowClass, hInst);
 		User32.INSTANCE.DestroyWindow(hWnd);
-		System.out.println("program exit!");
 	}
 
 	/*
@@ -91,10 +89,6 @@ class LockListener implements WindowProc {
 	 */
 	public int getLastError() {
 		int rc = Kernel32.INSTANCE.GetLastError();
-
-		if (rc != 0)
-			System.out.println("error: " + rc);
-
 		return rc;
 	}
 

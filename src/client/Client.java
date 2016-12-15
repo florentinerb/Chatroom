@@ -43,8 +43,8 @@ public class Client implements ClientConnectionMessageReceiver {
 		messageReceiver.typingStateReceived(typingState);
 	}
 
-	public void messageSent(String text, Color userColor) {
-		TextMessage message = new TextMessage(text, name, userColor);
+	public void messageSent(String text, Color userColor, String receiverName) {
+		TextMessage message = new TextMessage(text, name, userColor, receiverName);
 		try {
 			clientConnection.sendMessage(message);
 		} catch (IOException e) {

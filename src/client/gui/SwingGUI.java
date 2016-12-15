@@ -33,6 +33,7 @@ import javax.swing.DefaultListModel;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
+import javax.swing.JComboBox;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JList;
@@ -89,6 +90,7 @@ class SwingGUI extends JFrame implements MessageReceiver, ActionListener, Runnab
 	private TypingLabelController tlp;
 	private Color userColor;
 	private final String IMAGEPATH = "client/gui/emojiImages";
+	private JComboBox<String> receiverList = new JComboBox<String>();
 
 	public SwingGUI() throws UnknownHostException, IOException {
 		try {
@@ -187,6 +189,7 @@ class SwingGUI extends JFrame implements MessageReceiver, ActionListener, Runnab
 		inputMessage.setBorder(new RoundedCornerBorder());
 		JPanel chatActionPanel = new JPanel();
 		chatActionPanel.setLayout(new BorderLayout());
+		chatActionPanel.add(receiverList, BorderLayout.WEST);
 		chatActionPanel.add(inputMessage, BorderLayout.CENTER);
 		chatActionPanel.add(send, BorderLayout.EAST);
 
@@ -360,12 +363,18 @@ class SwingGUI extends JFrame implements MessageReceiver, ActionListener, Runnab
 	@Override
 	public void messageReceived(TextMessage message) throws IOException {
 		try {
-			if (lastMessage != null && lastMessage.getName().equals(message.getName())
-					&& lastMessage.getColor().equals(message.getColor())) {
+			System.out.println(message.getTimeNameMessage() + message.getReceiverName());
+			if (lastMessage != null && lastMessage.getSenderName().equals(message.getSenderName())
+					&& lastMessage.getColor().equals(message.getColor())
+					&& lastMessage.getReceiverName().equals(message.getReceiverName())) {
 				appendMessage(message.getMessage());
 			} else {
-				appendPointWithNameGeneratedColor(message.getName(), message.getColor());
-				appendName(message.getName());
+				appendPointWithNameGeneratedColor(message.getSenderName(), message.getColor());
+				if (!message.getReceiverName().equals("")) {
+					appendName(message.getSenderName() + " @ " + message.getReceiverName());
+				} else {
+					appendName(message.getSenderName());
+				}
 				appendDate(message.getTime());
 				appendMessage(message.getMessage());
 			}
@@ -406,7 +415,8 @@ class SwingGUI extends JFrame implements MessageReceiver, ActionListener, Runnab
 					}
 				}
 				if (!wordTooLong) {
-					client.messageSent(inputMessage.getText() + "\n", userColor);
+					client.messageSent(inputMessage.getText() + "\n", userColor,
+							receiverList.getSelectedItem().toString());
 					inputMessage.setText("");
 					antiSpamTime = System.currentTimeMillis();
 				}
@@ -455,10 +465,18 @@ class SwingGUI extends JFrame implements MessageReceiver, ActionListener, Runnab
 	@Override
 	public void activeUsersReceived(List<User> activeUsers) {
 		activeUsersListModel.clear();
+		receiverList.removeAllItems();
+		receiverList.addItem("");
 
 		for (User user : activeUsers) {
 			activeUsersListModel.addElement(user);
 		}
+
+		for (User user : activeUsers) {
+			if (!user.getName().equals(userName))
+				receiverList.addItem(user.getName());
+		}
+
 	}
 
 	public void setIcon(JFrame frame) {
