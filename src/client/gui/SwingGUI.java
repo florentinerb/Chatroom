@@ -363,7 +363,6 @@ class SwingGUI extends JFrame implements MessageReceiver, ActionListener, Runnab
 	@Override
 	public void messageReceived(TextMessage message) throws IOException {
 		try {
-			System.out.println(message.getTimeNameMessage() + message.getReceiverName());
 			if (lastMessage != null && lastMessage.getSenderName().equals(message.getSenderName())
 					&& lastMessage.getColor().equals(message.getColor())
 					&& lastMessage.getReceiverName().equals(message.getReceiverName())) {
