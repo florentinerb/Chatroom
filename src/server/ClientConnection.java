@@ -32,13 +32,32 @@ class ClientConnection implements Runnable {
 	private String name;
 	private Boolean locked;
 
-	@SuppressWarnings("unchecked")
+
 	ClientConnection(Socket s, ClientMessageListener clientMessageListener) throws IOException {
 		locked = false;
 
 		this.clientMessageListener = clientMessageListener;
-		List<TextMessage> logs = new ArrayList<TextMessage>();
 
+		readAndSendLogs();
+
+		this.s = s;
+		out = new ObjectOutputStream(this.s.getOutputStream());
+		in = new ObjectInputStream(this.s.getInputStream());
+		alive = true;
+
+		try {
+			this.setName((String) in.readObject());
+		} catch (Exception e) {
+			System.out.println("Error occurred when casting userName to String");
+		}
+
+		clientConnectionThread = new Thread(this);
+		clientConnectionThread.start();
+	}
+
+	@SuppressWarnings("unchecked")
+	private void readAndSendLogs() throws IOException {
+		List<TextMessage> logs = new ArrayList<TextMessage>();
 		try {
 			FileInputStream fis = new FileInputStream(Server.getLogFile());
 			ObjectInputStream ois = new ObjectInputStream(fis);
@@ -53,10 +72,6 @@ class ClientConnection implements Runnable {
 			System.out.println("No logs available");
 		}
 
-		this.s = s;
-		out = new ObjectOutputStream(this.s.getOutputStream());
-		in = new ObjectInputStream(this.s.getInputStream());
-		alive = true;
 
 		List<SealedObject> sealedLogs = new ArrayList<SealedObject>();
 		List<TextMessage> shortenedLogs;
@@ -79,34 +94,27 @@ class ClientConnection implements Runnable {
 			}
 		}
 		out.writeObject(sealedLogs);
-
-		try {
-			this.setName((String) in.readObject());
-		} catch (Exception e) {
-			System.out.println("Error occurred when casting userName to String");
-		}
-
-		clientConnectionThread = new Thread(this);
-		clientConnectionThread.start();
 	}
 
 	public void sendMessage(TextMessage message) throws IOException {
-		if (message.getReceiverName().equals("")) {
+		if (canUserSeeMessage(message)) {
 			try {
 				out.writeObject(edtm.sealTextMessage(message));
 			} catch (InvalidKeyException | NoSuchAlgorithmException | NoSuchPaddingException e) {
 				e.printStackTrace();
 			}
+		}
+	}
+
+	private Boolean canUserSeeMessage(TextMessage message) {
+		if (message.getReceiverName().equals("")) {
+			return true;
 		} else {
 			if (message.getReceiverName().equals(name) || message.getSenderName().equals(name)) {
-				try {
-					out.writeObject(edtm.sealTextMessage(message));
-				} catch (InvalidKeyException | NoSuchAlgorithmException | NoSuchPaddingException e) {
-					e.printStackTrace();
-				}
+				return true;
 			}
 		}
-
+		return false;
 	}
 
 	public void sendTypingState(TypingState typingState) throws IOException {

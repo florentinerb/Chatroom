@@ -6,6 +6,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
 import java.net.URL;
+import java.net.UnknownHostException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
@@ -39,14 +40,29 @@ class ClientConnection implements Runnable {
 
 	ClientConnection(ClientConnectionMessageReceiver clientConnectionMessageReceiver, String name)
 			throws IOException, ClassNotFoundException {
+		this.clientConnectionMessageReceiver = clientConnectionMessageReceiver;
 
+		certificateCheck();
+		checkOptionalServerIp();
+		setupConnection();
+		readLogs();
+
+		out.writeObject(name);
+		clientConnectionThread = new Thread(this);
+		alive = true;
+		clientConnectionThread.start();
+	}
+
+	public void certificateCheck() throws IOException {
 		File f = new File(System.getProperty("user.home") + "/Chat/truststore.key");
 		if (!f.exists()) {
 			URL inputUrl = getClass().getClassLoader().getResource("certificates/truststore.key");
 			File dest = new File(System.getProperty("user.home") + "/Chat/truststore.key");
 			FileUtils.copyURLToFile(inputUrl, dest);
 		}
+	}
 
+	public void checkOptionalServerIp() {
 		String optionalServerIp = Configuration.getServerIP();
 		if (optionalServerIp != null) {
 			if (!"0".equals(optionalServerIp)) {
@@ -55,7 +71,9 @@ class ClientConnection implements Runnable {
 		} else {
 			Configuration.setServerIP("0");
 		}
+	}
 
+	public void setupConnection() throws UnknownHostException, IOException {
 		System.setProperty("javax.net.ssl.trustStore", System.getProperty("user.home") + "/Chat/truststore.key");
 		System.setProperty("javax.net.ssl.trustStorePassword", "lehrlingschat2016");
 		SocketFactory factory = SSLSocketFactory.getDefault();
@@ -64,8 +82,10 @@ class ClientConnection implements Runnable {
 
 		inObject = new ObjectInputStream(s.getInputStream());
 		out = new ObjectOutputStream(s.getOutputStream());
-		this.clientConnectionMessageReceiver = clientConnectionMessageReceiver;
 
+	}
+
+	public void readLogs() throws ClassNotFoundException, IOException {
 		@SuppressWarnings("unchecked")
 		ArrayList<SealedObject> sealedLogs = (ArrayList<SealedObject>) inObject.readObject();
 		List<TextMessage> logs = new ArrayList<TextMessage>();
@@ -73,13 +93,7 @@ class ClientConnection implements Runnable {
 		for (SealedObject s : sealedLogs) {
 			logs.add(edtm.unsealTextMessage(s));
 		}
-
 		clientConnectionMessageReceiver.logsReceivedFromServer(logs);
-		out.writeObject(name);
-
-		clientConnectionThread = new Thread(this);
-		alive = true;
-		clientConnectionThread.start();
 	}
 
 	public void sendMessage(TextMessage message) throws IOException {
@@ -87,11 +101,7 @@ class ClientConnection implements Runnable {
 		try {
 			try {
 				out.writeObject(edtm.sealTextMessage(message));
-			} catch (InvalidKeyException e) {
-				e.printStackTrace();
-			} catch (NoSuchAlgorithmException e) {
-				e.printStackTrace();
-			} catch (NoSuchPaddingException e) {
+			} catch (InvalidKeyException | NoSuchPaddingException | NoSuchAlgorithmException e) {
 				e.printStackTrace();
 			}
 		} catch (IOException e) {
@@ -128,12 +138,11 @@ class ClientConnection implements Runnable {
 						clientConnectionMessageReceiver
 								.messageReceivedFromServer(edtm.unsealTextMessage((SealedObject) receivedObject));
 					}
-				} else if (receivedObject instanceof ArrayList) {
+				} else if (receivedObject instanceof List) {
 					clientConnectionMessageReceiver.activeUsersReceivedFromServer((ArrayList<User>) receivedObject);
 				} else if (receivedObject instanceof TypingState) {
 					clientConnectionMessageReceiver.typingStateReceivedFromServer((TypingState) receivedObject);
 				}
-
 			} catch (IOException | ClassNotFoundException e) {
 				failCount++;
 				if (failCount > 4) {
