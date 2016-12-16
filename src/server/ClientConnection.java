@@ -92,7 +92,7 @@ class ClientConnection implements Runnable {
 	}
 
 	public void sendMessage(TextMessage message) throws IOException {
-		if (message.getReceiverName() == null) {
+		if (message.getReceiverName().equals("")) {
 			try {
 				out.writeObject(edtm.sealTextMessage(message));
 			} catch (InvalidKeyException | NoSuchAlgorithmException | NoSuchPaddingException e) {
