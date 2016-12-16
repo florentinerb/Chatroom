@@ -68,14 +68,13 @@ class ClientConnection implements Runnable {
 			}
 
 			for (TextMessage tm : shortenedLogs) {
-				try {
-					sealedLogs.add(edtm.sealTextMessage(tm));
-				} catch (InvalidKeyException e) {
-					e.printStackTrace();
-				} catch (NoSuchAlgorithmException e) {
-					e.printStackTrace();
-				} catch (NoSuchPaddingException e) {
-					e.printStackTrace();
+				if (tm.getReceiverName().equals("") || tm.getReceiverName().equals(name)
+						|| tm.getSenderName().equals(name)) {
+					try {
+						sealedLogs.add(edtm.sealTextMessage(tm));
+					} catch (InvalidKeyException | NoSuchAlgorithmException | NoSuchPaddingException e) {
+						e.printStackTrace();
+					}
 				}
 			}
 		}
