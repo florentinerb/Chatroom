@@ -150,6 +150,7 @@ class ClientConnection implements Runnable {
 					shutdown();
 				}
 			} catch (Exception e) {
+				e.printStackTrace();
 				System.out.println("Exception while reading message was thrown but swallowed!");
 			}
 		}

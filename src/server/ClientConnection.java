@@ -38,10 +38,10 @@ class ClientConnection implements Runnable {
 
 		this.clientMessageListener = clientMessageListener;
 
-		readAndSendLogs();
 
 		this.s = s;
 		out = new ObjectOutputStream(this.s.getOutputStream());
+		readAndSendLogs();
 		in = new ObjectInputStream(this.s.getInputStream());
 		alive = true;
 

@@ -82,11 +82,14 @@ public class Server implements ClientConnectionListener, ClientMessageListener {
 			System.out.println(message.getTimeNameMessage());
 			if (message.getMessage().contains(KICKPHRASE)) {
 				String nameOfKickedChatMember = message.getMessage().replaceAll("\n", "")
-						.substring(message.getMessage().lastIndexOf(KICKPHRASE) + 1);
+						.substring(message.getMessage().indexOf(KICKPHRASE) + KICKPHRASE.length());
 				for (ClientConnection client : clients) {
+					System.out.println(
+							client.getName() + nameOfKickedChatMember + client.getSocket().getRemoteSocketAddress());
 					if (client.getName().equals(nameOfKickedChatMember)) {
 						try {
-							client.sendMessage(new TextMessage("*You've been kicked*", "Server", Color.RED, null));
+							client.sendMessage(
+									new TextMessage("*You've been kicked*", "Server", Color.RED, client.getName()));
 						} catch (IOException e) {
 							e.printStackTrace();
 						}

@@ -2,7 +2,6 @@ package client.gui;
 
 import static java.awt.BorderLayout.CENTER;
 import static java.awt.BorderLayout.EAST;
-import static java.awt.BorderLayout.NORTH;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -64,20 +63,20 @@ class SwingGUI extends JFrame implements MessageReceiver, ActionListener, Runnab
 
 	private Client client;
 	private String userName;
-	private JTextField inputMessage = new JTextField();
-	private JButton login = new JButton("login");
-	private JFrame loginFrame = new JFrame("Login");
-	private JPanel chatPanel = new JPanel();
-	private JPanel statusPanel = new JPanel();
-	private JPanel emojiPanel = new JPanel();
-	private JFrame chatFrame = new JFrame();
-	private JTextField inputName = new JTextField();
-	private AutoreplaceingEmojiFeed feed = new AutoreplaceingEmojiFeed();
-	private DefaultListModel<User> activeUsersListModel = new DefaultListModel<User>();
-	private JList<User> userStates = new JList<User>(activeUsersListModel);
-	private JButton send = new JButton("send");
-	private JCheckBox autoScrollCheckbox = new JCheckBox("AutoScroll", true);
-	private JLabel typingLabel = new JLabel("");
+	private JTextField inputMessage;
+	private JButton login;
+	private JFrame loginFrame;
+	private JPanel chatPanel;
+	private JPanel statusPanel;
+	private JPanel emojiPanel;
+	private JFrame chatFrame;
+	private JTextField inputName;
+	private AutoreplaceingEmojiFeed feed;
+	private DefaultListModel<User> activeUsersListModel;
+	private JList<User> userStates;
+	private JButton send;
+	private JCheckBox autoScrollCheckbox;
+	private JLabel typingLabel;
 	private JScrollPane scrollPane;
 	private double antiSpamTime;
 	private Style nameStyle;
@@ -90,7 +89,14 @@ class SwingGUI extends JFrame implements MessageReceiver, ActionListener, Runnab
 	private TypingLabelController tlp;
 	private Color userColor;
 	private final String IMAGEPATH = "client/gui/emojiImages";
-	private JComboBox<String> receiverList = new JComboBox<String>();
+	private JComboBox<String> receiverList;
+	private JButton settingsButton;
+	private JFrame settingsFrame;
+	private JPanel settingsPane;
+	private JScrollPane emojiScrollPane;
+	private JScrollPane allEmojiScrollPane;
+	private JList<ImageIcon> emojiList;
+	private JButton addEmoji;
 
 	public SwingGUI() throws UnknownHostException, IOException {
 		try {
@@ -99,7 +105,9 @@ class SwingGUI extends JFrame implements MessageReceiver, ActionListener, Runnab
 			System.out.println("Seaglass isn't available");
 		}
 		this.createLoginWindow();
+	}
 
+	public void initStyles() {
 		nameStyle = feed.addStyle("nameStyle", null);
 		StyleConstants.setForeground(nameStyle, Color.black);
 		StyleConstants.setFontSize(nameStyle, 15);
@@ -125,6 +133,12 @@ class SwingGUI extends JFrame implements MessageReceiver, ActionListener, Runnab
 	}
 
 	private void createLoginWindow() throws IOException {
+		login = new JButton("login");
+		loginFrame = new JFrame("Login");
+		inputName = new JTextField();
+		feed = new AutoreplaceingEmojiFeed();
+		initStyles();
+
 		getProperties();
 
 		login.addActionListener(this);
@@ -133,14 +147,13 @@ class SwingGUI extends JFrame implements MessageReceiver, ActionListener, Runnab
 		loginFrame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
 
 		inputName.setBorder(new RoundedCornerBorder());
-		login.setBorder(new RoundedCornerBorder());
 
 		JPanel loginPanel = new JPanel();
 		loginPanel.setLayout(new BorderLayout());
 		loginPanel.add(inputName, CENTER);
 		loginPanel.add(login, EAST);
 
-		loginFrame.add(loginPanel, NORTH);
+		loginFrame.add(loginPanel, CENTER);
 		setIcon(loginFrame);
 
 		inputName.addKeyListener(new KeyAdapter() {
@@ -152,15 +165,28 @@ class SwingGUI extends JFrame implements MessageReceiver, ActionListener, Runnab
 			}
 		});
 
-		loginFrame.setSize(300, 54);
+		loginFrame.setSize(300, 60);
 		centerWindow(loginFrame);
 		loginFrame.setVisible(true);
-		loginFrame.setResizable(false);
+		// loginFrame.setResizable(false);
 
 		SwingUtilities.getRootPane(login).setDefaultButton(login);
+
+		activeUsersListModel = new DefaultListModel<User>();
+		receiverList = new JComboBox<String>();
 	}
 
 	private void createChatWindow() {
+		inputMessage = new JTextField();
+		chatPanel = new JPanel();
+		statusPanel = new JPanel();
+		emojiPanel = new JPanel();
+		chatFrame = new JFrame();
+		userStates = new JList<User>(activeUsersListModel);
+		send = new JButton("send");
+		autoScrollCheckbox = new JCheckBox("AutoScroll", true);
+		typingLabel = new JLabel("");
+		settingsButton = new JButton();
 
 		tlp = new TypingLabelController(typingLabel, userName);
 		Thread lockListenerThread = new Thread(this);
@@ -173,6 +199,7 @@ class SwingGUI extends JFrame implements MessageReceiver, ActionListener, Runnab
 
 		send.setSize(30, 10);
 		send.addActionListener(this);
+		settingsButton.addActionListener(this);
 		autoScrollCheckbox.addActionListener(this);
 		feed.setEditable(false);
 
@@ -181,7 +208,6 @@ class SwingGUI extends JFrame implements MessageReceiver, ActionListener, Runnab
 		typingLabel.setFont(new Font(Font.SANS_SERIF, Font.ITALIC, 12));
 		topPanel.add(typingLabel);
 
-		send.setBorder(new RoundedCornerBorder());
 		JPanel buttonPanel = new JPanel();
 		buttonPanel.setLayout(new FlowLayout(FlowLayout.RIGHT));
 		buttonPanel.add(send);
@@ -264,12 +290,12 @@ class SwingGUI extends JFrame implements MessageReceiver, ActionListener, Runnab
 		emojiPanel.setLayout(new BorderLayout());
 
 		DefaultListModel<ImageIcon> listModel = new DefaultListModel<ImageIcon>();
-		final JList<ImageIcon> emojiList = new JList<ImageIcon>();
-		JScrollPane scrollPane = new JScrollPane(emojiList);
+		emojiList = new JList<ImageIcon>();
+		emojiScrollPane = new JScrollPane(emojiList);
 		emojiList.setModel(listModel);
 
 		for (File file : feed.getEmojiImages()) {
-			ImageIcon ii = fileToImageIcon(file);
+			ImageIcon ii = fileToImageIcon(file, 30, 30);
 			if (ii != null) {
 				listModel.addElement(ii);
 			}
@@ -283,24 +309,26 @@ class SwingGUI extends JFrame implements MessageReceiver, ActionListener, Runnab
 			}
 		};
 
+		settingsButton.setIcon(fileToImageIcon(new File("2699.png"), 15, 15));
+
 		emojiList.addMouseListener(mouseListener);
-		emojiPanel.add(scrollPane);
+		emojiPanel.add(settingsButton, BorderLayout.NORTH);
+		emojiPanel.add(emojiScrollPane, BorderLayout.CENTER);
 	}
 
-	private ImageIcon fileToImageIcon(File file) {
+	private ImageIcon fileToImageIcon(File file, Integer w, Integer h) {
 		if (file.getName().contains(".png")) {
 			try {
-
 				URL inputUrl = getClass().getClassLoader().getResource(IMAGEPATH + "/" + file.getName());
 				Image image;
 				image = ImageIO.read(inputUrl);
 
-				BufferedImage resizedImg = new BufferedImage(30, 30, BufferedImage.TYPE_INT_ARGB);
+				BufferedImage resizedImg = new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB);
 				Graphics2D g2 = resizedImg.createGraphics();
 
 				g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
 				g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-				g2.drawImage(image, 0, 0, 30, 30, null);
+				g2.drawImage(image, 0, 0, w, h, null);
 				g2.dispose();
 				ImageIcon ii = new ImageIcon(resizedImg);
 				ii.setDescription(file.getName().replace(".png", ""));
@@ -311,6 +339,35 @@ class SwingGUI extends JFrame implements MessageReceiver, ActionListener, Runnab
 
 		}
 		return null;
+	}
+
+	private void createSettingsFrame() {
+		DefaultListModel<ImageIcon> favEmojiListModel = new DefaultListModel<ImageIcon>();
+		final JList<ImageIcon> allEmojiList = new JList<ImageIcon>();
+		allEmojiScrollPane = new JScrollPane(allEmojiList);
+		allEmojiList.setModel(favEmojiListModel);
+
+		final JList<ImageIcon> favEmojiList = new JList<ImageIcon>();
+		JScrollPane favEmojiScrollPane = new JScrollPane(favEmojiList);
+		favEmojiList.setModel(favEmojiListModel);
+		addEmoji = new JButton(">");
+		addEmoji.addActionListener(this);
+
+		settingsFrame = new JFrame("Settings");
+		centerWindow(settingsFrame);
+		settingsPane = new JPanel();
+		settingsPane.setLayout(new BorderLayout());
+		allEmojiList.setModel(emojiList.getModel());
+		settingsPane.add(allEmojiScrollPane, BorderLayout.WEST);
+		settingsPane.add(favEmojiScrollPane, BorderLayout.EAST);
+		settingsPane.add(addEmoji, BorderLayout.CENTER);
+
+		settingsFrame.add(settingsPane);
+
+		settingsFrame.setVisible(true);
+		settingsFrame.setSize(400, 400);
+		settingsFrame.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
+		System.out.println("settingsFrame");
 	}
 
 	private void scrollToBottom() {
@@ -435,6 +492,17 @@ class SwingGUI extends JFrame implements MessageReceiver, ActionListener, Runnab
 			}
 		}
 
+		if (e.getSource() == settingsButton) {
+			if (settingsFrame == null || !settingsFrame.isVisible()) {
+				createSettingsFrame();
+			}
+		}
+
+		if (e.getSource() == addEmoji) {
+			if (settingsFrame == null || !settingsFrame.isVisible()) {
+				createSettingsFrame();
+			}
+		}
 	}
 
 	private void appendName(String str) throws BadLocationException, IOException {
