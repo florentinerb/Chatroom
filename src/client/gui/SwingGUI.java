@@ -97,6 +97,9 @@ class SwingGUI extends JFrame implements MessageReceiver, ActionListener, Runnab
 	private JScrollPane allEmojiScrollPane;
 	private JList<ImageIcon> emojiList;
 	private JButton addEmoji;
+	private JList<ImageIcon> allEmojiList;
+	private JList<ImageIcon> favEmojiList;
+	private DefaultListModel<ImageIcon> favEmojiListModel;
 
 	public SwingGUI() throws UnknownHostException, IOException {
 		try {
@@ -342,12 +345,11 @@ class SwingGUI extends JFrame implements MessageReceiver, ActionListener, Runnab
 	}
 
 	private void createSettingsFrame() {
-		DefaultListModel<ImageIcon> favEmojiListModel = new DefaultListModel<ImageIcon>();
-		final JList<ImageIcon> allEmojiList = new JList<ImageIcon>();
+		favEmojiListModel = new DefaultListModel<ImageIcon>();
+		allEmojiList = new JList<ImageIcon>();
 		allEmojiScrollPane = new JScrollPane(allEmojiList);
-		allEmojiList.setModel(favEmojiListModel);
 
-		final JList<ImageIcon> favEmojiList = new JList<ImageIcon>();
+		favEmojiList = new JList<ImageIcon>(favEmojiListModel);
 		JScrollPane favEmojiScrollPane = new JScrollPane(favEmojiList);
 		favEmojiList.setModel(favEmojiListModel);
 		addEmoji = new JButton(">");
@@ -499,8 +501,10 @@ class SwingGUI extends JFrame implements MessageReceiver, ActionListener, Runnab
 		}
 
 		if (e.getSource() == addEmoji) {
-			if (settingsFrame == null || !settingsFrame.isVisible()) {
-				createSettingsFrame();
+			for (ImageIcon imageIcon : allEmojiList.getSelectedValuesList()) {
+				if (!favEmojiListModel.contains(imageIcon)) {
+					favEmojiListModel.addElement(imageIcon);
+				}
 			}
 		}
 	}

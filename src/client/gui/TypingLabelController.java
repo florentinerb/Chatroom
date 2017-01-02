@@ -7,22 +7,20 @@ import protocol.TypingState;
 class TypingLabelController implements Runnable {
 	private JLabel label;
 	private String username;
-	boolean waitToDisappear;
-	Thread thread = new Thread(this);
+	static Thread thread;
 
 	public TypingLabelController(JLabel label, String username) {
 		this.label = label;
 		this.username = username;
 	}
 
-	@SuppressWarnings("deprecation")
 	public void receivedTypingInfos(TypingState typingState) {
 		if (!typingState.getName().equals(username)) {
 			label.setText(typingState.getName() + " is typing...");
-			if (thread.isAlive()) {
-				thread.destroy();
+			if (thread == null || !thread.isAlive()) {
+				thread = new Thread(this);
+				thread.start();
 			}
-			thread.start();
 		}
 	}
 
