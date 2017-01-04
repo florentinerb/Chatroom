@@ -21,7 +21,12 @@ import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.image.BufferedImage;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.RandomAccessFile;
 import java.net.URL;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
@@ -96,10 +101,14 @@ class SwingGUI extends JFrame implements MessageReceiver, ActionListener, Runnab
 	private JScrollPane emojiScrollPane;
 	private JScrollPane allEmojiScrollPane;
 	private JList<ImageIcon> emojiList;
-	private JButton addEmoji;
+	private JButton addEmojiButton;
 	private JList<ImageIcon> allEmojiList;
 	private JList<ImageIcon> favEmojiList;
 	private DefaultListModel<ImageIcon> favEmojiListModel;
+	private JButton removeEmojiButton;
+	private DefaultListModel<ImageIcon> allEmojiListModel;
+	private JScrollPane favEmojiScrollPane;
+	private JPanel centerPane;
 
 	public SwingGUI() throws UnknownHostException, IOException {
 		try {
@@ -205,6 +214,7 @@ class SwingGUI extends JFrame implements MessageReceiver, ActionListener, Runnab
 		settingsButton.addActionListener(this);
 		autoScrollCheckbox.addActionListener(this);
 		feed.setEditable(false);
+		feed.setBackground(Color.white);
 
 		JPanel topPanel = new JPanel();
 		topPanel.add(autoScrollCheckbox);
@@ -290,19 +300,52 @@ class SwingGUI extends JFrame implements MessageReceiver, ActionListener, Runnab
 	}
 
 	private void createEmojiBar() {
+		DefaultListModel<ImageIcon> favListModelFromFile = readFavEmojiFile();
+
+		if (favListModelFromFile == null) {
+			favEmojiListModel = new DefaultListModel<ImageIcon>();
+		} else {
+			if (favListModelFromFile.size() > 0) {
+				favEmojiListModel = favListModelFromFile;
+			} else {
+				favEmojiListModel = new DefaultListModel<ImageIcon>();
+			}
+		}
+		allEmojiList = new JList<ImageIcon>();
+		allEmojiScrollPane = new JScrollPane(allEmojiList);
+
+		favEmojiList = new JList<ImageIcon>(favEmojiListModel);
+		favEmojiScrollPane = new JScrollPane(favEmojiList);
+		favEmojiList.setModel(favEmojiListModel);
+		addEmojiButton = new JButton(">");
+		addEmojiButton.addActionListener(this);
+
 		emojiPanel.setLayout(new BorderLayout());
 
-		DefaultListModel<ImageIcon> listModel = new DefaultListModel<ImageIcon>();
 		emojiList = new JList<ImageIcon>();
 		emojiScrollPane = new JScrollPane(emojiList);
-		emojiList.setModel(listModel);
-
+		
+		allEmojiListModel = new DefaultListModel<ImageIcon>();
 		for (File file : feed.getEmojiImages()) {
 			ImageIcon ii = fileToImageIcon(file, 30, 30);
 			if (ii != null) {
-				listModel.addElement(ii);
+				allEmojiListModel.addElement(ii);
 			}
 		}
+
+		if (favListModelFromFile == null) {
+			emojiList.setModel(allEmojiListModel);
+		} else {
+			if (favListModelFromFile.size() > 0) {
+				emojiList.setModel(favEmojiListModel);
+			} else {
+				emojiList.setModel(allEmojiListModel);
+			}
+
+		}
+
+		emojiScrollPane.setPreferredSize(new Dimension(70, 0));
+		allEmojiScrollPane.setPreferredSize(new Dimension(70, 0));
 
 		MouseListener mouseListener = new MouseAdapter() {
 			public void mouseClicked(MouseEvent e) {
@@ -344,32 +387,51 @@ class SwingGUI extends JFrame implements MessageReceiver, ActionListener, Runnab
 		return null;
 	}
 
-	private void createSettingsFrame() {
-		favEmojiListModel = new DefaultListModel<ImageIcon>();
-		allEmojiList = new JList<ImageIcon>();
-		allEmojiScrollPane = new JScrollPane(allEmojiList);
+	@SuppressWarnings("unchecked")
+	private DefaultListModel<ImageIcon> readFavEmojiFile() {
+		ObjectInputStream oos;
+		DefaultListModel<ImageIcon> favListModelFromFile = null;
+		try {
+			oos = new ObjectInputStream(
+					new FileInputStream(new File(System.getProperty("user.home") + "/Chat/favEmojis.config")));
+			favListModelFromFile = (DefaultListModel<ImageIcon>) oos.readObject();
+			oos.close();
+		} catch (IOException | ClassNotFoundException e) {
+			System.out.println("favEmojiConfig could not be found!");
+		}
 
-		favEmojiList = new JList<ImageIcon>(favEmojiListModel);
-		JScrollPane favEmojiScrollPane = new JScrollPane(favEmojiList);
-		favEmojiList.setModel(favEmojiListModel);
-		addEmoji = new JButton(">");
-		addEmoji.addActionListener(this);
+		if (favListModelFromFile == null) {
+			return null;
+		} else {
+			return favListModelFromFile;
+		}
+	}
+
+	private void createSettingsFrame() {
+		removeEmojiButton = new JButton("<");
+		removeEmojiButton.addActionListener(this);
+		favEmojiScrollPane.setPreferredSize(new Dimension(70, 0));
 
 		settingsFrame = new JFrame("Settings");
 		centerWindow(settingsFrame);
 		settingsPane = new JPanel();
+		
+		centerPane = new JPanel();
+		centerPane.setLayout(new BorderLayout());
 		settingsPane.setLayout(new BorderLayout());
-		allEmojiList.setModel(emojiList.getModel());
+		allEmojiList.setModel(allEmojiListModel);
 		settingsPane.add(allEmojiScrollPane, BorderLayout.WEST);
 		settingsPane.add(favEmojiScrollPane, BorderLayout.EAST);
-		settingsPane.add(addEmoji, BorderLayout.CENTER);
+		centerPane.add(addEmojiButton, BorderLayout.WEST);
+		centerPane.add(removeEmojiButton, BorderLayout.EAST);
+		settingsPane.add(centerPane, BorderLayout.CENTER);
 
 		settingsFrame.add(settingsPane);
 
 		settingsFrame.setVisible(true);
-		settingsFrame.setSize(400, 400);
+		settingsFrame.setSize(250, 400);
+		settingsFrame.setResizable(false);
 		settingsFrame.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
-		System.out.println("settingsFrame");
 	}
 
 	private void scrollToBottom() {
@@ -500,12 +562,44 @@ class SwingGUI extends JFrame implements MessageReceiver, ActionListener, Runnab
 			}
 		}
 
-		if (e.getSource() == addEmoji) {
+		if (e.getSource() == addEmojiButton) {
 			for (ImageIcon imageIcon : allEmojiList.getSelectedValuesList()) {
 				if (!favEmojiListModel.contains(imageIcon)) {
 					favEmojiListModel.addElement(imageIcon);
+					saveListToFile();
+					if (favEmojiListModel.size() > 0) {
+						emojiList.setModel(favEmojiListModel);
+					} else {
+						emojiList.setModel(allEmojiListModel);
+					}
 				}
 			}
+		}
+
+		if (e.getSource() == removeEmojiButton) {
+			for (ImageIcon imageIcon : favEmojiList.getSelectedValuesList()) {
+				favEmojiListModel.remove(favEmojiListModel.indexOf(imageIcon));
+				saveListToFile();
+				if (favEmojiListModel.size() > 0) {
+					emojiList.setModel(favEmojiListModel);
+				} else {
+					emojiList.setModel(allEmojiListModel);
+				}
+			}
+		}
+	}
+
+	private void saveListToFile() {
+		try {
+			RandomAccessFile favEmojisFile = new RandomAccessFile(
+					System.getProperty("user.home") + "/Chat/favEmojis.config", "rw");
+			favEmojisFile.close();
+			ObjectOutputStream oos = new ObjectOutputStream(
+					new FileOutputStream(new File(System.getProperty("user.home") + "/Chat/favEmojis.config")));
+			oos.writeObject(favEmojiListModel);
+			oos.close();
+		} catch (IOException e) {
+			e.printStackTrace();
 		}
 	}
 
