@@ -26,18 +26,16 @@ class ClientConnection implements Runnable {
 	private ClientMessageListener clientMessageListener;
 	private Thread clientConnectionThread;
 	private volatile boolean alive = true;
-	private final int NUMBEROFLOGMESSAGES = 60;
+	private final int NUMBEROFLOGMESSAGES = 100;
 	private EncryptDecryptTextMessage edtm = new EncryptDecryptTextMessage();
 
 	private String name;
 	private Boolean locked;
 
-
 	ClientConnection(Socket s, ClientMessageListener clientMessageListener) throws IOException {
 		locked = false;
 
 		this.clientMessageListener = clientMessageListener;
-
 
 		this.s = s;
 		out = new ObjectOutputStream(this.s.getOutputStream());
@@ -71,7 +69,6 @@ class ClientConnection implements Runnable {
 		} catch (Exception ex) {
 			System.out.println("No logs available");
 		}
-
 
 		List<SealedObject> sealedLogs = new ArrayList<SealedObject>();
 		List<TextMessage> shortenedLogs;
@@ -129,6 +126,7 @@ class ClientConnection implements Runnable {
 	public void run() {
 		while (alive) {
 			try {
+				System.out.println(in.available());
 				Object inObject = in.readObject();
 				if (inObject instanceof SealedObject) {
 					Object unsealedObject = edtm.unsealTextMessage((SealedObject) inObject);

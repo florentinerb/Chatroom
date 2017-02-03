@@ -19,7 +19,7 @@ import protocol.UserState;
 public class Server implements ClientConnectionListener, ClientMessageListener {
 	private List<ClientConnection> clients = new ArrayList<ClientConnection>();
 	private static File logFile = new File(System.getProperty("user.home") + "/Chat/logs.txt");
-	private static List<TextMessage> allMessagesList = new ArrayList<TextMessage>();
+	private static ArrayList<TextMessage> allMessagesList = new ArrayList<TextMessage>();
 	private ConnectionAcceptorThread connectionAcceptorThread;
 	private static final String KICKPHRASE = "***blacklist";
 
@@ -30,7 +30,7 @@ public class Server implements ClientConnectionListener, ClientMessageListener {
 		} else {
 			FileInputStream fis = new FileInputStream(Server.logFile);
 			try (ObjectInputStream ois = new ObjectInputStream(fis);) {
-				allMessagesList = (List<TextMessage>) ois.readObject();
+				allMessagesList = (ArrayList<TextMessage>) ois.readObject();
 			} catch (ClassNotFoundException e) {
 				e.printStackTrace();
 			} catch (Exception e) {
@@ -100,7 +100,10 @@ public class Server implements ClientConnectionListener, ClientMessageListener {
 				}
 			} else {
 				allMessagesList.add(message);
-				List<TextMessage> messagesToWrite = allMessagesList;
+
+				@SuppressWarnings("unchecked")
+				ArrayList<TextMessage> messagesToWrite = (ArrayList<TextMessage>) allMessagesList.clone();
+
 				try {
 					FileOutputStream fos = new FileOutputStream(logFile);
 					ObjectOutputStream oos = new ObjectOutputStream(fos);
@@ -123,7 +126,7 @@ public class Server implements ClientConnectionListener, ClientMessageListener {
 	public void stop() throws IOException {
 		for (ClientConnection cc : clients) {
 			try {
-				cc.sendMessage(new TextMessage("*This Chat is closed*", "Server", Color.RED, null));
+				cc.sendMessage(new TextMessage("*This Chat is closed*", "Server", Color.RED, ""));
 			} catch (IOException e) {
 			}
 		}

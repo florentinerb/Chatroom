@@ -28,7 +28,7 @@ import protocol.UserState;
 
 class ClientConnection implements Runnable {
 	private int port = 1234;
-	private String serveradress = "10.1.201.136";
+	private String defaultServeradress = "10.1.201.136";
 	private Socket s;
 	private ObjectInputStream inObject;
 	private ObjectOutputStream out;
@@ -66,7 +66,7 @@ class ClientConnection implements Runnable {
 		String optionalServerIp = Configuration.getServerIP();
 		if (optionalServerIp != null) {
 			if (!"0".equals(optionalServerIp)) {
-				this.serveradress = optionalServerIp;
+				this.defaultServeradress = optionalServerIp;
 			}
 		} else {
 			Configuration.setServerIP("0");
@@ -78,7 +78,7 @@ class ClientConnection implements Runnable {
 		System.setProperty("javax.net.ssl.trustStorePassword", "lehrlingschat2016");
 		SocketFactory factory = SSLSocketFactory.getDefault();
 
-		s = factory.createSocket(serveradress, port);
+		s = factory.createSocket(defaultServeradress, port);
 
 		inObject = new ObjectInputStream(s.getInputStream());
 		out = new ObjectOutputStream(s.getOutputStream());
@@ -128,7 +128,6 @@ class ClientConnection implements Runnable {
 	@SuppressWarnings("unchecked")
 	@Override
 	public void run() {
-		int failCount = 0;
 		while (alive) {
 			try {
 				Object receivedObject = inObject.readObject();
@@ -143,15 +142,13 @@ class ClientConnection implements Runnable {
 				} else if (receivedObject instanceof TypingState) {
 					clientConnectionMessageReceiver.typingStateReceivedFromServer((TypingState) receivedObject);
 				}
-			} catch (IOException | ClassNotFoundException e) {
-				failCount++;
-				if (failCount > 4) {
-					System.out.println("Client shutdown due to errors");
-					shutdown();
-				}
+			} catch (ClassCastException e1) {
+				System.out.println("adskfjhdsahflkdsajhflkjsahflkdsajhfsaf");
+				e1.printStackTrace();
 			} catch (Exception e) {
-				e.printStackTrace();
-				System.out.println("Exception while reading message was thrown but swallowed!");
+				// e.printStackTrace();
+				// System.out.println("Exception while reading message was
+				// thrown but swallowed!");
 			}
 		}
 	}

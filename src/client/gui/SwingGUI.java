@@ -109,14 +109,33 @@ class SwingGUI extends JFrame implements MessageReceiver, ActionListener, Runnab
 	private DefaultListModel<ImageIcon> allEmojiListModel;
 	private JScrollPane favEmojiScrollPane;
 	private JPanel centerPane;
+	private JComboBox<String> lookAndFeelCombobox;
 
 	public SwingGUI() throws UnknownHostException, IOException {
-		try {
-			UIManager.setLookAndFeel("com.seaglasslookandfeel.SeaGlassLookAndFeel");
-		} catch (Exception e) {
-			System.out.println("Seaglass isn't available");
-		}
 		this.createLoginWindow();
+	}
+
+	public void updateLookAndFeel(String lookAndFeel, JFrame frame) {
+		try {
+			String lookAndFeelToSet = "com.seaglasslookandfeel.SeaGlassLookAndFeel";
+
+			switch (lookAndFeel) {
+			case "Seaglass":
+				lookAndFeel = "com.seaglasslookandfeel.SeaGlassLookAndFeel";
+				break;
+			case "Acryl":
+				lookAndFeelToSet = "com.jtattoo.plaf.acryl.AcrylLookAndFeel";
+				break;
+			}
+
+			UIManager.setLookAndFeel(lookAndFeelToSet);
+			SwingUtilities.updateComponentTreeUI(frame);
+
+		} catch (Exception e) {
+			e.printStackTrace();
+			System.out.println("Your chosen LAF isn't available");
+		}
+
 	}
 
 	public void initStyles() {
@@ -149,8 +168,12 @@ class SwingGUI extends JFrame implements MessageReceiver, ActionListener, Runnab
 		loginFrame = new JFrame("Login");
 		inputName = new JTextField();
 		feed = new AutoreplaceingEmojiFeed();
-		initStyles();
+		lookAndFeelCombobox = new JComboBox<String>();
 
+		lookAndFeelCombobox.addItem("Acryl");
+		lookAndFeelCombobox.addItem("Seaglass");
+
+		initStyles();
 		getProperties();
 
 		login.addActionListener(this);
@@ -164,6 +187,7 @@ class SwingGUI extends JFrame implements MessageReceiver, ActionListener, Runnab
 		loginPanel.setLayout(new BorderLayout());
 		loginPanel.add(inputName, CENTER);
 		loginPanel.add(login, EAST);
+		loginPanel.add(lookAndFeelCombobox, BorderLayout.SOUTH);
 
 		loginFrame.add(loginPanel, CENTER);
 		setIcon(loginFrame);
@@ -176,11 +200,24 @@ class SwingGUI extends JFrame implements MessageReceiver, ActionListener, Runnab
 				}
 			}
 		});
+		
+		lookAndFeelCombobox.addActionListener (new ActionListener () {
+		    public void actionPerformed(ActionEvent e) {
+		    	String lookAndFeel = lookAndFeelCombobox.getSelectedItem().toString();
+				updateLookAndFeel(lookAndFeel, loginFrame);
+				Configuration.setLookAndFeel(lookAndFeel);
+		    }
+		});
 
-		loginFrame.setSize(300, 60);
+		String lookAndFeelFromConfig = Configuration.getLookAndFeel();
+		if (lookAndFeelFromConfig != null) {
+			lookAndFeelCombobox.setSelectedItem(lookAndFeelFromConfig);
+		}
+
+		loginFrame.setSize(300, 100);
 		centerWindow(loginFrame);
 		loginFrame.setVisible(true);
-		// loginFrame.setResizable(false);
+		loginFrame.setResizable(false);
 
 		SwingUtilities.getRootPane(login).setDefaultButton(login);
 
@@ -284,6 +321,7 @@ class SwingGUI extends JFrame implements MessageReceiver, ActionListener, Runnab
 
 		chatFrame.setSize(500, 433);
 		centerWindow(chatFrame);
+		SwingUtilities.updateComponentTreeUI(chatFrame);
 		chatFrame.setVisible(true);
 
 		SwingUtilities.getRootPane(send).setDefaultButton(send);
@@ -675,13 +713,14 @@ class SwingGUI extends JFrame implements MessageReceiver, ActionListener, Runnab
 		client.userStateSend(false);
 	}
 
-	private void typing() {
-		client.typingStateSend(new TypingState(userName));
-	}
-
 	@Override
 	public void typingStateReceived(TypingState typingState) {
 		tlp.receivedTypingInfos(typingState);
 	}
+
+	private void typing() {
+		client.typingStateSend(new TypingState(userName));
+	}
+
 
 }
