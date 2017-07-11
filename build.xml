@@ -1,0 +1,17 @@
+<project default="jar">
+	<target name="compile">
+		<javac target="1.7" source="1.7" srcdir="." />
+	</target>
+	<target name="jar" depends="compile">
+		<jar destfile="ChatroomClient.jar" basedir="src">
+			<manifest>
+				<attribute name="Main-Class" value="client.gui.GUIStarter" />
+			</manifest>
+		</jar>
+		<jar destfile="ChatroomServer.jar" basedir="src">
+			<manifest>
+				<attribute name="Main-Class" value="server.gui.ServerStarter" />
+			</manifest>
+		</jar>
+	</target>
+</project>

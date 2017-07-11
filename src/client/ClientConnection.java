@@ -19,7 +19,6 @@ import javax.net.ssl.SSLSocketFactory;
 
 import org.apache.commons.io.FileUtils;
 
-import client.configuration.Configuration;
 import protocol.EncryptDecryptTextMessage;
 import protocol.TextMessage;
 import protocol.TypingState;
@@ -38,12 +37,13 @@ class ClientConnection implements Runnable {
 	private Thread clientConnectionThread;
 	private volatile boolean alive = true;
 
-	ClientConnection(ClientConnectionMessageReceiver clientConnectionMessageReceiver, String name)
+	ClientConnection(ClientConnectionMessageReceiver clientConnectionMessageReceiver, String name, String serverIp)
 			throws IOException, ClassNotFoundException {
 		this.clientConnectionMessageReceiver = clientConnectionMessageReceiver;
 
+
 		certificateCheck();
-		checkOptionalServerIp();
+		checkOptionalServerIp(serverIp);
 		setupConnection();
 		readLogs();
 
@@ -62,14 +62,9 @@ class ClientConnection implements Runnable {
 		}
 	}
 
-	public void checkOptionalServerIp() {
-		String optionalServerIp = Configuration.getServerIP();
-		if (optionalServerIp != null) {
-			if (!"0".equals(optionalServerIp)) {
-				this.serveradress = optionalServerIp;
-			}
-		} else {
-			Configuration.setServerIP("0");
+	public void checkOptionalServerIp(String serverIp) {
+		if (serverIp != null) {
+			serveradress = serverIp;
 		}
 	}
 
@@ -145,7 +140,9 @@ class ClientConnection implements Runnable {
 				}
 			} catch (IOException | ClassNotFoundException e) {
 				failCount++;
-				if (failCount > 4) {
+				if (failCount > 20) {
+					clientConnectionMessageReceiver.clientInfoReceived("Verbindung ist gescheitert!");
+					clientConnectionMessageReceiver.clientShutdownMessage();
 					System.out.println("Client shutdown due to errors");
 					shutdown();
 				}

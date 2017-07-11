@@ -16,11 +16,12 @@ public class Client implements ClientConnectionMessageReceiver {
 	private MessageReceiver messageReceiver;
 	private ClientConnection clientConnection;
 
-	public Client(String name, MessageReceiver messageReceiver, Color color)
+	public Client(String name, MessageReceiver messageReceiver, Color color, String serverIp)
 			throws UnknownHostException, IOException, ClassNotFoundException {
 		this.messageReceiver = messageReceiver;
 		this.name = name;
-		clientConnection = new ClientConnection(this, name);
+		
+		clientConnection = new ClientConnection(this, name, serverIp);
 	}
 
 	@Override
@@ -68,4 +69,15 @@ public class Client implements ClientConnectionMessageReceiver {
 			e.printStackTrace();
 		}
 	}
+
+	@Override
+	public void clientInfoReceived(String message) {
+		messageReceiver.clientInfoReceived(message);
+	}
+
+	@Override
+	public void clientShutdownMessage() {
+		messageReceiver.clientShutdownMessage();
+	}
+
 }

@@ -16,4 +16,8 @@ public interface MessageReceiver {
 
 	void typingStateReceived(TypingState typingState);
 
+	void clientInfoReceived(String message);
+
+	void clientShutdownMessage();
+
 }

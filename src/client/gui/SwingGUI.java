@@ -2,28 +2,30 @@ package client.gui;
 
 import static java.awt.BorderLayout.CENTER;
 import static java.awt.BorderLayout.EAST;
-import static java.awt.BorderLayout.NORTH;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
-import java.awt.Graphics2D;
 import java.awt.Image;
-import java.awt.RenderingHints;
 import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.ItemEvent;
+import java.awt.event.ItemListener;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
-import java.awt.image.BufferedImage;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
-import java.net.URL;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.RandomAccessFile;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
@@ -38,6 +40,7 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JList;
 import javax.swing.JPanel;
+import javax.swing.JProgressBar;
 import javax.swing.JScrollPane;
 import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
@@ -60,24 +63,25 @@ import protocol.TextMessage;
 import protocol.TypingState;
 import protocol.User;
 
-class SwingGUI extends JFrame implements MessageReceiver, ActionListener, Runnable, LockMessageReceiver {
+class SwingGUI extends JFrame
+		implements MessageReceiver, ActionListener, Runnable, LockMessageReceiver, ConversionFinishedNotifier {
 
 	private Client client;
 	private String userName;
-	private JTextField inputMessage = new JTextField();
-	private JButton login = new JButton("login");
-	private JFrame loginFrame = new JFrame("Login");
-	private JPanel chatPanel = new JPanel();
-	private JPanel statusPanel = new JPanel();
-	private JPanel emojiPanel = new JPanel();
-	private JFrame chatFrame = new JFrame();
-	private JTextField inputName = new JTextField();
-	private AutoreplaceingEmojiFeed feed = new AutoreplaceingEmojiFeed();
-	private DefaultListModel<User> activeUsersListModel = new DefaultListModel<User>();
-	private JList<User> userStates = new JList<User>(activeUsersListModel);
-	private JButton send = new JButton("send");
-	private JCheckBox autoScrollCheckbox = new JCheckBox("AutoScroll", true);
-	private JLabel typingLabel = new JLabel("");
+	private JTextField inputMessage;
+	private JButton login;
+	private JFrame loginFrame;
+	private JPanel chatPanel;
+	private JPanel statusPanel;
+	private JPanel emojiPanel;
+	private JFrame chatFrame;
+	private JTextField inputName;
+	private AutoreplaceingEmojiFeed feed;
+	private DefaultListModel<User> activeUsersListModel;
+	private JList<User> userStates;
+	private JButton send;
+	private JCheckBox autoScrollCheckbox;
+	private JLabel typingLabel;
 	private JScrollPane scrollPane;
 	private double antiSpamTime;
 	private Style nameStyle;
@@ -85,21 +89,66 @@ class SwingGUI extends JFrame implements MessageReceiver, ActionListener, Runnab
 	private Style dateStyle;
 	private Style breakStyle;
 	private Style pointStyle;
-	private List<TextMessage> logs;
 	private TextMessage lastMessage;
 	private TypingLabelController tlp;
 	private Color userColor;
-	private final String IMAGEPATH = "client/gui/emojiImages";
-	private JComboBox<String> receiverList = new JComboBox<String>();
+	private JComboBox<String> receiverList;
+	private JButton settingsButton;
+	private JFrame settingsFrame;
+	private JPanel settingsPane;
+	private JScrollPane emojiScrollPane;
+	private JScrollPane allEmojiScrollPane;
+	private JList<ImageIcon> emojiList;
+	private JButton addEmojiButton;
+	private JList<ImageIcon> allEmojiList;
+	private JList<ImageIcon> favEmojiList;
+	private DefaultListModel<ImageIcon> favEmojiListModel;
+	private JButton removeEmojiButton;
+	private DefaultListModel<ImageIcon> allEmojiListModel;
+	private JScrollPane favEmojiScrollPane;
+	private JPanel centerPane;
+	private JComboBox<String> lookAndFeelCombobox;
+	private JList<String> serverIpList;
+	private DefaultListModel<String> serverIpsListModel;
+	private JTextField inputNewServerIp;
+	private JButton buttonAddNewServerIp;
+	private JButton buttonRemoveServerIp;
+	private JProgressBar progressBar;
+	private Thread alecThread;
+	private String serverIp;
+	private JButton reconnectButton;
+	private JPanel chatActionPanel;
+	private DefaultListModel<ImageIcon> favListModelFromFile;
 
 	public SwingGUI() throws UnknownHostException, IOException {
-		try {
-			UIManager.setLookAndFeel("com.seaglasslookandfeel.SeaGlassLookAndFeel");
-		} catch (Exception e) {
-			System.out.println("Seaglass isn't available");
-		}
+		new FileToImageConverter(this);
 		this.createLoginWindow();
+	}
 
+	public void updateLookAndFeel(String lookAndFeel, JFrame frame) {
+		try {
+			String lookAndFeelToSet = "com.seaglasslookandfeel.SeaGlassLookAndFeel";
+
+			switch (lookAndFeel) {
+			case "Seaglass":
+				lookAndFeel = "com.seaglasslookandfeel.SeaGlassLookAndFeel";
+				break;
+			case "Acryl":
+				lookAndFeelToSet = "com.jtattoo.plaf.acryl.AcrylLookAndFeel";
+				break;
+			}
+
+			UIManager.setLookAndFeel(lookAndFeelToSet);
+			SwingUtilities.updateComponentTreeUI(frame);
+
+		} catch (Exception e) {
+			e.printStackTrace();
+			System.out.println("Your chosen LAF isn't available");
+		}
+
+	}
+
+	public void initStyles() {
 		nameStyle = feed.addStyle("nameStyle", null);
 		StyleConstants.setForeground(nameStyle, Color.black);
 		StyleConstants.setFontSize(nameStyle, 15);
@@ -125,22 +174,51 @@ class SwingGUI extends JFrame implements MessageReceiver, ActionListener, Runnab
 	}
 
 	private void createLoginWindow() throws IOException {
+		login = new JButton("login");
+		loginFrame = new JFrame("Login");
+		inputName = new JTextField();
+		feed = new AutoreplaceingEmojiFeed();
+		lookAndFeelCombobox = new JComboBox<String>();
+		serverIpList = new JList<String>();
+		inputNewServerIp = new JTextField();
+		buttonAddNewServerIp = new JButton("+");
+		buttonRemoveServerIp = new JButton("-");
+
+		lookAndFeelCombobox.addItem("Acryl");
+		lookAndFeelCombobox.addItem("Seaglass");
+
+		initStyles();
 		getProperties();
+		getServerIps();
 
 		login.addActionListener(this);
+		buttonAddNewServerIp.addActionListener(this);
+		buttonRemoveServerIp.addActionListener(this);
 
 		loginFrame.setLayout(new BorderLayout());
 		loginFrame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
 
 		inputName.setBorder(new RoundedCornerBorder());
-		login.setBorder(new RoundedCornerBorder());
 
 		JPanel loginPanel = new JPanel();
+		JPanel serverIpPanel = new JPanel();
+		JPanel lookAndFeelPanel = new JPanel();
+		JPanel addServerIpPanel = new JPanel();
 		loginPanel.setLayout(new BorderLayout());
 		loginPanel.add(inputName, CENTER);
 		loginPanel.add(login, EAST);
+		lookAndFeelPanel.add(new JLabel("Look&Feel\n"), BorderLayout.NORTH);
+		lookAndFeelPanel.add(lookAndFeelCombobox, BorderLayout.CENTER);
+		serverIpPanel.add(new JLabel("Server-Ip\n"), BorderLayout.NORTH);
+		serverIpPanel.add(serverIpList, BorderLayout.NORTH);
+		addServerIpPanel.add(inputNewServerIp);
+		addServerIpPanel.add(buttonAddNewServerIp);
+		addServerIpPanel.add(buttonRemoveServerIp, BorderLayout.SOUTH);
+		serverIpPanel.add(addServerIpPanel, BorderLayout.CENTER);
 
-		loginFrame.add(loginPanel, NORTH);
+		loginFrame.add(loginPanel, BorderLayout.NORTH);
+		loginFrame.add(lookAndFeelPanel, BorderLayout.SOUTH);
+		loginFrame.add(serverIpPanel, BorderLayout.CENTER);
 		setIcon(loginFrame);
 
 		inputName.addKeyListener(new KeyAdapter() {
@@ -152,15 +230,41 @@ class SwingGUI extends JFrame implements MessageReceiver, ActionListener, Runnab
 			}
 		});
 
-		loginFrame.setSize(300, 54);
+		lookAndFeelCombobox.addItemListener(new ItemListener() {
+			public void itemStateChanged(ItemEvent arg0) {
+				String lookAndFeel = lookAndFeelCombobox.getSelectedItem().toString();
+				updateLookAndFeel(lookAndFeel, loginFrame);
+				Configuration.setLookAndFeel(lookAndFeel);
+			}
+		});
+
+		String lookAndFeelFromConfig = Configuration.getLookAndFeel();
+		if (lookAndFeelFromConfig != null) {
+			lookAndFeelCombobox.setSelectedItem(lookAndFeelFromConfig);
+		}
+
+		loginFrame.setSize(200, 300);
 		centerWindow(loginFrame);
 		loginFrame.setVisible(true);
 		loginFrame.setResizable(false);
 
 		SwingUtilities.getRootPane(login).setDefaultButton(login);
+
+		activeUsersListModel = new DefaultListModel<User>();
+		receiverList = new JComboBox<String>();
 	}
 
 	private void createChatWindow() {
+		inputMessage = new JTextField();
+		chatPanel = new JPanel();
+		statusPanel = new JPanel();
+		emojiPanel = new JPanel();
+		chatFrame = new JFrame();
+		userStates = new JList<User>(activeUsersListModel);
+		send = new JButton("send");
+		autoScrollCheckbox = new JCheckBox("AutoScroll", true);
+		typingLabel = new JLabel("");
+		settingsButton = new JButton();
 
 		tlp = new TypingLabelController(typingLabel, userName);
 		Thread lockListenerThread = new Thread(this);
@@ -173,21 +277,22 @@ class SwingGUI extends JFrame implements MessageReceiver, ActionListener, Runnab
 
 		send.setSize(30, 10);
 		send.addActionListener(this);
+		settingsButton.addActionListener(this);
 		autoScrollCheckbox.addActionListener(this);
 		feed.setEditable(false);
+		feed.setBackground(Color.white);
 
 		JPanel topPanel = new JPanel();
 		topPanel.add(autoScrollCheckbox);
 		typingLabel.setFont(new Font(Font.SANS_SERIF, Font.ITALIC, 12));
 		topPanel.add(typingLabel);
 
-		send.setBorder(new RoundedCornerBorder());
 		JPanel buttonPanel = new JPanel();
 		buttonPanel.setLayout(new FlowLayout(FlowLayout.RIGHT));
 		buttonPanel.add(send);
 
 		inputMessage.setBorder(new RoundedCornerBorder());
-		JPanel chatActionPanel = new JPanel();
+		chatActionPanel = new JPanel();
 		chatActionPanel.setLayout(new BorderLayout());
 		chatActionPanel.add(receiverList, BorderLayout.WEST);
 		chatActionPanel.add(inputMessage, BorderLayout.CENTER);
@@ -235,8 +340,6 @@ class SwingGUI extends JFrame implements MessageReceiver, ActionListener, Runnab
 
 		});
 
-		createEmojiBar();
-
 		chatFrame.add(emojiPanel, BorderLayout.WEST);
 		chatFrame.add(chatPanel, BorderLayout.CENTER);
 		chatFrame.add(statusPanel, BorderLayout.EAST);
@@ -245,35 +348,54 @@ class SwingGUI extends JFrame implements MessageReceiver, ActionListener, Runnab
 
 		chatFrame.setSize(500, 433);
 		centerWindow(chatFrame);
+		SwingUtilities.updateComponentTreeUI(chatFrame);
+
 		chatFrame.setVisible(true);
 
 		SwingUtilities.getRootPane(send).setDefaultButton(send);
 
-		if (logs != null) {
-			for (TextMessage message : logs) {
-				try {
-					messageReceived(message);
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-			}
-		}
+		createEmojiBar();
 	}
 
 	private void createEmojiBar() {
-		emojiPanel.setLayout(new BorderLayout());
+		favListModelFromFile = readFavEmojiFile();
 
-		DefaultListModel<ImageIcon> listModel = new DefaultListModel<ImageIcon>();
-		final JList<ImageIcon> emojiList = new JList<ImageIcon>();
-		JScrollPane scrollPane = new JScrollPane(emojiList);
-		emojiList.setModel(listModel);
-
-		for (File file : feed.getEmojiImages()) {
-			ImageIcon ii = fileToImageIcon(file);
-			if (ii != null) {
-				listModel.addElement(ii);
+		if (favListModelFromFile == null) {
+			favEmojiListModel = new DefaultListModel<ImageIcon>();
+		} else {
+			if (favListModelFromFile.size() > 0) {
+				favEmojiListModel = favListModelFromFile;
+			} else {
+				favEmojiListModel = new DefaultListModel<ImageIcon>();
 			}
 		}
+		allEmojiList = new JList<ImageIcon>();
+		allEmojiScrollPane = new JScrollPane(allEmojiList);
+
+		favEmojiList = new JList<ImageIcon>(favEmojiListModel);
+		favEmojiScrollPane = new JScrollPane(favEmojiList);
+		favEmojiList.setModel(favEmojiListModel);
+		addEmojiButton = new JButton(">");
+		addEmojiButton.addActionListener(this);
+
+		emojiPanel.setLayout(new BorderLayout());
+
+		emojiList = new JList<ImageIcon>();
+		emojiScrollPane = new JScrollPane(emojiList);
+
+		if (favListModelFromFile == null) {
+			emojiList.setModel(allEmojiListModel);
+		} else {
+			if (favListModelFromFile.size() > 0) {
+				emojiList.setModel(favEmojiListModel);
+			} else {
+				emojiList.setModel(allEmojiListModel);
+			}
+
+		}
+
+		emojiScrollPane.setPreferredSize(new Dimension(70, 0));
+		allEmojiScrollPane.setPreferredSize(new Dimension(70, 0));
 
 		MouseListener mouseListener = new MouseAdapter() {
 			public void mouseClicked(MouseEvent e) {
@@ -283,34 +405,69 @@ class SwingGUI extends JFrame implements MessageReceiver, ActionListener, Runnab
 			}
 		};
 
+		settingsButton.setIcon(FileToImageConverter.fileToImageIcon(new File("2699.png"), 15, 15));
+
 		emojiList.addMouseListener(mouseListener);
-		emojiPanel.add(scrollPane);
+		emojiPanel.add(settingsButton, BorderLayout.NORTH);
+		emojiPanel.add(emojiScrollPane, BorderLayout.CENTER);
 	}
 
-	private ImageIcon fileToImageIcon(File file) {
-		if (file.getName().contains(".png")) {
-			try {
-
-				URL inputUrl = getClass().getClassLoader().getResource(IMAGEPATH + "/" + file.getName());
-				Image image;
-				image = ImageIO.read(inputUrl);
-
-				BufferedImage resizedImg = new BufferedImage(30, 30, BufferedImage.TYPE_INT_ARGB);
-				Graphics2D g2 = resizedImg.createGraphics();
-
-				g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
-				g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-				g2.drawImage(image, 0, 0, 30, 30, null);
-				g2.dispose();
-				ImageIcon ii = new ImageIcon(resizedImg);
-				ii.setDescription(file.getName().replace(".png", ""));
-				return ii;
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-
+	@SuppressWarnings("unchecked")
+	private DefaultListModel<ImageIcon> readFavEmojiFile() {
+		ObjectInputStream oos;
+		DefaultListModel<ImageIcon> favListModelFromFile = null;
+		try {
+			oos = new ObjectInputStream(
+					new FileInputStream(new File(System.getProperty("user.home") + "/Chat/favEmojis.config")));
+			favListModelFromFile = (DefaultListModel<ImageIcon>) oos.readObject();
+			oos.close();
+		} catch (IOException | ClassNotFoundException e) {
+			System.out.println("favEmojiConfig could not be found!");
 		}
-		return null;
+
+		if (favListModelFromFile == null) {
+			return null;
+		} else {
+			return favListModelFromFile;
+		}
+	}
+
+	private void createSettingsFrame() {
+		removeEmojiButton = new JButton("<");
+		removeEmojiButton.addActionListener(this);
+		favEmojiScrollPane.setPreferredSize(new Dimension(70, 0));
+
+		settingsFrame = new JFrame("Settings");
+		centerWindow(settingsFrame);
+		settingsPane = new JPanel();
+
+		centerPane = new JPanel();
+		centerPane.setLayout(new BorderLayout());
+		settingsPane.setLayout(new BorderLayout());
+		settingsPane.add(allEmojiScrollPane, BorderLayout.WEST);
+		settingsPane.add(favEmojiScrollPane, BorderLayout.EAST);
+		centerPane.add(addEmojiButton, BorderLayout.WEST);
+		centerPane.add(removeEmojiButton, BorderLayout.EAST);
+		settingsPane.add(centerPane, BorderLayout.CENTER);
+
+		settingsFrame.add(settingsPane);
+
+		settingsFrame.setVisible(true);
+		settingsFrame.setSize(250, 400);
+		settingsFrame.setResizable(false);
+		settingsFrame.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
+
+		AllEmojiListConverter aelc = new AllEmojiListConverter(feed, this);
+		if (alecThread == null && allEmojiListModel == null) {
+
+			progressBar = new JProgressBar(0, feed.getEmojiImages().size());
+			progressBar.setValue(0);
+			progressBar.setStringPainted(true);
+			settingsPane.add(progressBar, BorderLayout.NORTH);
+
+			alecThread = new Thread(aelc);
+			alecThread.start();
+		}
 	}
 
 	private void scrollToBottom() {
@@ -328,6 +485,24 @@ class SwingGUI extends JFrame implements MessageReceiver, ActionListener, Runnab
 		}
 	}
 
+	private void getServerIps() {
+		serverIpsListModel = new DefaultListModel<String>();
+		serverIpList.setModel(serverIpsListModel);
+
+		Configuration.loadConfiguration();
+		String serverIps = Configuration.getServerIps();
+
+		inputNewServerIp.setText("IP-Adress");
+
+		if (serverIps != null) {
+			for (String ip : serverIps.split(";")) {
+				serverIpsListModel.addElement(ip);
+			}
+		}
+
+		serverIpList.setSelectedIndex(0);
+	}
+
 	private void getPropertiesColor() {
 		Configuration.loadConfiguration();
 		Color color = Configuration.getColor();
@@ -340,8 +515,30 @@ class SwingGUI extends JFrame implements MessageReceiver, ActionListener, Runnab
 		}
 	}
 
+	private void restartClient() {
+		try {
+			feed.setText("");
+			chatFrame.dispose();
+			createChatWindow();
+			client = new Client(userName, this, userColor, serverIp);
+		} catch (IOException | ClassNotFoundException e1) {
+			e1.printStackTrace();
+			System.out.println("Kann nicht auf den Server verbinden.");
+			clientShutdownMessage();
+			try {
+				appendName("*Verbindung gescheitert*\n\n");
+				scrollToBottom();
+			} catch (BadLocationException | IOException e) {
+				e.printStackTrace();
+			}
+		}
+
+	}
+
 	private void login() throws ClassNotFoundException, BadLocationException, IOException {
 		userName = inputName.getText();
+		serverIp = serverIpsListModel.get(serverIpList.getSelectedIndex());
+		loginFrame.dispose();
 
 		try {
 			Configuration.setUsername(userName);
@@ -350,14 +547,24 @@ class SwingGUI extends JFrame implements MessageReceiver, ActionListener, Runnab
 		}
 
 		try {
-			client = new Client(userName, this, userColor);
+			createChatWindow();
+			client = new Client(userName, this, userColor, serverIp);
 		} catch (IOException e1) {
+			clientShutdownMessage();
 			e1.printStackTrace();
 			System.out.println("Kann nicht auf den Server verbinden.");
-			appendName(
-					"*Verbindung konnte nicht hergestellt werden. Sie können leider keine Nachrichten versenden oder empfangen.*");
+			appendName("*Verbindung gescheitert. Sie können leider keine Nachrichten versenden oder empfangen.*");
 		}
 
+	}
+
+	@Override
+	public void clientInfoReceived(String message) {
+		try {
+			appendName("\n\n" + message);
+		} catch (BadLocationException | IOException e) {
+			e.printStackTrace();
+		}
 	}
 
 	@Override
@@ -368,7 +575,7 @@ class SwingGUI extends JFrame implements MessageReceiver, ActionListener, Runnab
 					&& lastMessage.getReceiverName().equals(message.getReceiverName())) {
 				appendMessage(message.getMessage());
 			} else {
-				appendPointWithNameGeneratedColor(message.getSenderName(), message.getColor());
+				appendPointWithColor(message.getSenderName(), message.getColor());
 				if (!message.getReceiverName().equals("")) {
 					appendName(message.getSenderName() + " @ " + message.getReceiverName());
 				} else {
@@ -392,7 +599,15 @@ class SwingGUI extends JFrame implements MessageReceiver, ActionListener, Runnab
 
 	@Override
 	public void logsReceived(List<TextMessage> logs) {
-		this.logs = logs;
+		if (logs != null) {
+			for (TextMessage message : logs) {
+				try {
+					messageReceived(message);
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+		}
 	}
 
 	@Override
@@ -429,12 +644,76 @@ class SwingGUI extends JFrame implements MessageReceiver, ActionListener, Runnab
 				} catch (Exception e1) {
 					e1.printStackTrace();
 				}
-
-				loginFrame.dispose();
-				createChatWindow();
 			}
 		}
 
+		if (e.getSource() == buttonAddNewServerIp) {
+			String newServerIp = inputNewServerIp.getText();
+			if (newServerIp.length() >= 1 && newServerIp.length() <= 15) {
+				Configuration.loadConfiguration();
+				Configuration.addServerIp(newServerIp);
+				getServerIps();
+			}
+		}
+
+		if (e.getSource() == buttonRemoveServerIp) {
+			String serverIpToRemove = serverIpsListModel.get(serverIpList.getSelectedIndex());
+			if (serverIpToRemove != null) {
+				Configuration.loadConfiguration();
+				Configuration.removeServerIp(serverIpToRemove);
+				getServerIps();
+			}
+		}
+
+		if (e.getSource() == settingsButton) {
+			if (settingsFrame == null || !settingsFrame.isVisible()) {
+				createSettingsFrame();
+			}
+		}
+
+		if (e.getSource() == addEmojiButton) {
+			for (ImageIcon imageIcon : allEmojiList.getSelectedValuesList()) {
+				if (!favEmojiListModel.contains(imageIcon)) {
+					favEmojiListModel.addElement(imageIcon);
+					saveListToFile();
+					if (favEmojiListModel.size() > 0) {
+						emojiList.setModel(favEmojiListModel);
+					} else {
+						emojiList.setModel(allEmojiListModel);
+					}
+				}
+			}
+		}
+
+		if (e.getSource() == removeEmojiButton) {
+			for (ImageIcon imageIcon : favEmojiList.getSelectedValuesList()) {
+				favEmojiListModel.remove(favEmojiListModel.indexOf(imageIcon));
+				saveListToFile();
+				if (favEmojiListModel.size() > 0) {
+					emojiList.setModel(favEmojiListModel);
+				} else {
+					emojiList.setModel(allEmojiListModel);
+				}
+			}
+		}
+
+		if (e.getSource() == reconnectButton) {
+			restartClient();
+		}
+	}
+
+	private void saveListToFile() {
+		try {
+			RandomAccessFile favEmojisFile = new RandomAccessFile(
+					System.getProperty("user.home") + "/Chat/favEmojis.config", "rw");
+			favEmojisFile.close();
+			ObjectOutputStream oos = new ObjectOutputStream(
+					new FileOutputStream(new File(System.getProperty("user.home") + "/Chat/favEmojis.config")));
+			oos.writeObject(favEmojiListModel);
+			oos.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 
 	private void appendName(String str) throws BadLocationException, IOException {
@@ -454,7 +733,7 @@ class SwingGUI extends JFrame implements MessageReceiver, ActionListener, Runnab
 
 	}
 
-	private void appendPointWithNameGeneratedColor(String name, Color color) throws BadLocationException {
+	private void appendPointWithColor(String name, Color color) throws BadLocationException {
 		StyledDocument document = (StyledDocument) feed.getDocument();
 		document.insertString(document.getLength(), "\n", breakStyle);
 		StyleConstants.setForeground(pointStyle, color);
@@ -463,17 +742,25 @@ class SwingGUI extends JFrame implements MessageReceiver, ActionListener, Runnab
 
 	@Override
 	public void activeUsersReceived(List<User> activeUsers) {
+		User selectedUser = (User) receiverList.getSelectedItem();
 		activeUsersListModel.clear();
-		receiverList.removeAllItems();
 		receiverList.addItem("");
 
 		for (User user : activeUsers) {
 			activeUsersListModel.addElement(user);
 		}
-
+		
 		for (User user : activeUsers) {
-			if (!user.getName().equals(userName))
+			if (!user.getName().equals(userName)){
 				receiverList.addItem(user.getName());
+			}
+		}
+		
+		for (User user : activeUsers) {
+			if (user.getName().equals(selectedUser.getName())) {
+				receiverList.setSelectedIndex(activeUsersListModel.indexOf(user));
+
+			}
 		}
 
 	}
@@ -509,13 +796,34 @@ class SwingGUI extends JFrame implements MessageReceiver, ActionListener, Runnab
 		client.userStateSend(false);
 	}
 
-	private void typing() {
-		client.typingStateSend(new TypingState(userName));
-	}
-
 	@Override
 	public void typingStateReceived(TypingState typingState) {
 		tlp.receivedTypingInfos(typingState);
 	}
 
+	private void typing() {
+		client.typingStateSend(new TypingState(userName));
+	}
+
+	@Override
+	public void conversionFinished(DefaultListModel<ImageIcon> allEmojiListModel) {
+		this.allEmojiListModel = allEmojiListModel;
+		settingsPane.remove(progressBar);
+		allEmojiList.setModel(allEmojiListModel);
+	}
+
+	@Override
+	public void stepComplete(int number) {
+		progressBar.setValue(number);
+	}
+
+	@Override
+	public void clientShutdownMessage() {
+		chatActionPanel.remove(inputMessage);
+		chatActionPanel.remove(send);
+		chatActionPanel.remove(receiverList);
+		reconnectButton = new JButton("Reconnect");
+		chatActionPanel.add(reconnectButton, BorderLayout.CENTER);
+		reconnectButton.addActionListener(this);
+	}
 }

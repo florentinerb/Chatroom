@@ -32,16 +32,14 @@ class ClientConnection implements Runnable {
 	private String name;
 	private Boolean locked;
 
-
 	ClientConnection(Socket s, ClientMessageListener clientMessageListener) throws IOException {
 		locked = false;
 
 		this.clientMessageListener = clientMessageListener;
 
-		readAndSendLogs();
-
 		this.s = s;
 		out = new ObjectOutputStream(this.s.getOutputStream());
+		readAndSendLogs();
 		in = new ObjectInputStream(this.s.getInputStream());
 		alive = true;
 
@@ -72,7 +70,6 @@ class ClientConnection implements Runnable {
 			System.out.println("No logs available");
 		}
 
-
 		List<SealedObject> sealedLogs = new ArrayList<SealedObject>();
 		List<TextMessage> shortenedLogs;
 		if (!logs.isEmpty()) {
@@ -83,13 +80,10 @@ class ClientConnection implements Runnable {
 			}
 
 			for (TextMessage tm : shortenedLogs) {
-				if (tm.getReceiverName().equals("") || tm.getReceiverName().equals(name)
-						|| tm.getSenderName().equals(name)) {
-					try {
-						sealedLogs.add(edtm.sealTextMessage(tm));
-					} catch (InvalidKeyException | NoSuchAlgorithmException | NoSuchPaddingException e) {
-						e.printStackTrace();
-					}
+				try {
+					sealedLogs.add(edtm.sealTextMessage(tm));
+				} catch (InvalidKeyException | NoSuchAlgorithmException | NoSuchPaddingException e) {
+					e.printStackTrace();
 				}
 			}
 		}

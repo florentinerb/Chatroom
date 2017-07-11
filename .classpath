@@ -3,9 +3,10 @@
 	<classpathentry kind="src" path="src"/>
 	<classpathentry kind="src" path="certificates"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
-	<classpathentry exported="true" kind="lib" path="commons-io-2.5.jar"/>
-	<classpathentry exported="true" kind="lib" path="jna-platform.jar"/>
-	<classpathentry exported="true" kind="lib" path="jna.jar"/>
-	<classpathentry exported="true" kind="lib" path="seaglasslookandfeel-0.2.1.jar"/>
+	<classpathentry kind="lib" path="lib/commons-io-2.5.jar"/>
+	<classpathentry kind="lib" path="lib/jna-platform.jar"/>
+	<classpathentry kind="lib" path="lib/jna.jar"/>
+	<classpathentry kind="lib" path="lib/JTattoo-1.6.11.jar"/>
+	<classpathentry kind="lib" path="lib/seaglasslookandfeel-0.2.1.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

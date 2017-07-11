@@ -83,19 +83,6 @@ public class Configuration {
 		}
 	}
 
-	public static void setServerIP(String newServerIP) {
-		try (OutputStream tryoutput = new FileOutputStream(configFile.getAbsoluteFile());) {
-			OutputStream output = new FileOutputStream(configFile.getAbsoluteFile());
-
-			properties.setProperty("serverIP", newServerIP);
-
-			properties.store(output, null);
-
-		} catch (IOException io) {
-			io.printStackTrace();
-		}
-	}
-
 	public static void generateColor() {
 		try (OutputStream tryoutput = new FileOutputStream(configFile.getAbsoluteFile());) {
 			OutputStream output = new FileOutputStream(configFile.getAbsoluteFile());
@@ -111,6 +98,60 @@ public class Configuration {
 
 			properties.store(output, null);
 
+		} catch (IOException io) {
+			io.printStackTrace();
+		}
+	}
+
+	public static void setLookAndFeel(String lookAndFeel) {
+		try (OutputStream tryoutput = new FileOutputStream(configFile.getAbsoluteFile());) {
+			OutputStream output = new FileOutputStream(configFile.getAbsoluteFile());
+
+			properties.setProperty("lookAndFeel", lookAndFeel);
+
+			properties.store(output, null);
+
+		} catch (IOException io) {
+			io.printStackTrace();
+		}
+	}
+
+	public static String getLookAndFeel() throws IllegalStateException {
+		try {
+			return properties.getProperty("lookAndFeel");
+		} catch (Exception e) {
+			throw new IllegalStateException();
+		}
+	}
+
+	public static void addServerIp(String serverIp) {
+		try (OutputStream tryoutput = new FileOutputStream(configFile.getAbsoluteFile());) {
+			OutputStream output = new FileOutputStream(configFile.getAbsoluteFile());
+
+			properties.setProperty("serverIps", properties.getProperty("serverIps") + serverIp + ";");
+
+			properties.store(output, null);
+
+		} catch (IOException io) {
+			io.printStackTrace();
+		}
+	}
+
+	public static String getServerIps() throws IllegalStateException {
+		try {
+			return properties.getProperty("serverIps");
+		} catch (Exception e) {
+			throw new IllegalStateException();
+		}
+	}
+
+	public static void removeServerIp(String serverIp) throws IllegalStateException {
+		try (OutputStream tryoutput = new FileOutputStream(configFile.getAbsoluteFile());) {
+			OutputStream output = new FileOutputStream(configFile.getAbsoluteFile());
+
+			properties.setProperty("serverIps", properties.getProperty("serverIps").replace(serverIp + ";", ""));
+
+			properties.store(output, null);
 		} catch (IOException io) {
 			io.printStackTrace();
 		}

@@ -118,12 +118,6 @@ public class Server implements ClientConnectionListener, ClientMessageListener {
 	}
 
 	public void stop() throws IOException {
-		for (ClientConnection cc : clients) {
-			try {
-				cc.sendMessage(new TextMessage("*This Chat is closed*", "Server", Color.RED, null));
-			} catch (IOException e) {
-			}
-		}
 		System.exit(0);
 	}
 

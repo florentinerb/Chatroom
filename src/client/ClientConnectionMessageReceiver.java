@@ -16,4 +16,8 @@ interface ClientConnectionMessageReceiver {
 
 	void typingStateReceivedFromServer(TypingState typingState);
 
+	void clientInfoReceived(String message);
+
+	void clientShutdownMessage();
+
 }

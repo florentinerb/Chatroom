@@ -30,7 +30,7 @@ class ServerStarter {
 		    FileChannel channel = randomFile.getChannel();
 
 		    if(channel.tryLock() == null){
-		    	System.out.println ("Already Running...");      
+				System.out.println("Already Running...");
 		    } else {
 		    	new SwingServer();
 		    }

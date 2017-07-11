@@ -27,7 +27,7 @@ import javax.swing.text.Utilities;
 
 import sun.misc.Launcher;
 
-class AutoreplaceingEmojiFeed extends JTextPane {
+class AutoreplaceingEmojiFeed extends JTextPane implements Runnable {
 	private ImageIcon TEARLAUGH = getImage("1f602.png", false);
 	private ImageIcon SHIT = getImage("1f4a9.png", false);
 	private ImageIcon UNICORN = getImage("1f984.png", false);
@@ -54,40 +54,8 @@ class AutoreplaceingEmojiFeed extends JTextPane {
 
 	public AutoreplaceingEmojiFeed() {
 		super();
-
-		final String path = "client/gui/emojiImages";
-		final File jarFile = new File(getClass().getProtectionDomain().getCodeSource().getLocation().getPath());
-		try {
-			if (jarFile.isFile()) {
-				// Run with JAR file
-				JarFile jar;
-				jar = new JarFile(jarFile);
-				final Enumeration<JarEntry> entries = jar.entries();
-				while (entries.hasMoreElements()) {
-					final String name = entries.nextElement().getName();
-					if (name.startsWith(path + "/")) {
-						emojiImages.add(new File(name));
-					}
-				}
-				jar.close();
-			} else {
-				// Run in IDE
-				final URL url = Launcher.class.getResource("/" + path + "/");
-				if (url != null) {
-					final File apps = new File(url.toURI());
-					File[] files = apps.listFiles();
-					if (files != null) {
-						for (File file : files) {
-							emojiImages.add(file);
-						}
-					}
-				}
-			}
-		} catch (IOException | URISyntaxException e) {
-			e.printStackTrace();
-		}
-
-		initListener();
+		Thread thread = new Thread(this);
+		thread.start();
 	}
 
 	private void initListener() {
@@ -220,6 +188,45 @@ class AutoreplaceingEmojiFeed extends JTextPane {
 
 	public ArrayList<File> getEmojiImages() {
 		return emojiImages;
+	}
+
+	@Override
+	public void run() {
+		final String path = "client/gui/emojiImages";
+		final File jarFile = new File(getClass().getProtectionDomain().getCodeSource().getLocation().getPath());
+		try {
+			if (jarFile.isFile()) {
+				// Run with JAR file
+				JarFile jar;
+				jar = new JarFile(jarFile);
+				final Enumeration<JarEntry> entries = jar.entries();
+				while (entries.hasMoreElements()) {
+					final String name = entries.nextElement().getName();
+					if (name.startsWith(path + "/")) {
+						emojiImages.add(new File(name));
+					}
+				}
+				jar.close();
+			} else {
+				// Run in IDE
+				final URL url = Launcher.class.getResource("/" + path + "/");
+				if (url != null) {
+					final File apps = new File(url.toURI());
+					File[] files = apps.listFiles();
+					if (files != null) {
+						for (File file : files) {
+							emojiImages.add(file);
+						}
+					}
+				}
+			}
+
+		} catch (IOException | URISyntaxException e) {
+			e.printStackTrace();
+		}
+
+		initListener();
+
 	}
 
 }

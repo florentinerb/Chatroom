@@ -31,7 +31,6 @@ public class TextMessage implements Serializable {
 
 	public String getTime() {
 		SimpleDateFormat sdfTime = new SimpleDateFormat("HH:mm:ss");
-		time = new Date();
 		return sdfTime.format(time);
 	}
 
