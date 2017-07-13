@@ -6,6 +6,8 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Properties;
 import java.util.Random;
 
@@ -70,6 +72,22 @@ public class Configuration {
 		}
 	}
 
+	public static List<Float> getColorFloats() throws IllegalStateException {
+		try {
+			Float r = new Float(properties.getProperty("r"));
+			Float g = new Float(properties.getProperty("g"));
+			Float b = new Float(properties.getProperty("b"));
+			List<Float> colorList = new ArrayList<Float>();
+			colorList.add(r);
+			colorList.add(g);
+			colorList.add(b);
+			return colorList;
+		} catch (Exception e) {
+			return null;
+		}
+	}
+
+
 	public static void setUsername(String newUserName) {
 		try (OutputStream tryoutput = new FileOutputStream(configFile.getAbsoluteFile());) {
 			OutputStream output = new FileOutputStream(configFile.getAbsoluteFile());
@@ -91,6 +109,25 @@ public class Configuration {
 			Float r = rand.nextFloat();
 			Float g = rand.nextFloat();
 			Float b = rand.nextFloat();
+
+			properties.setProperty("r", r.toString());
+			properties.setProperty("b", b.toString());
+			properties.setProperty("g", g.toString());
+
+			properties.store(output, null);
+
+		} catch (IOException io) {
+			io.printStackTrace();
+		}
+	}
+
+	public static void setColor(Color color) {
+		try (OutputStream tryoutput = new FileOutputStream(configFile.getAbsoluteFile());) {
+			OutputStream output = new FileOutputStream(configFile.getAbsoluteFile());
+
+			Float r = new Float(color.getRed()) / 255;
+			Float g = new Float(color.getGreen()) / 255;
+			Float b = new Float(color.getBlue()) / 255;
 
 			properties.setProperty("r", r.toString());
 			properties.setProperty("b", b.toString());

@@ -9,6 +9,7 @@ class TypingLabelController implements Runnable {
 	private JLabel label;
 	private long timeElapsed;
 	private String username;
+	private boolean alive = true;
 
 	public TypingLabelController(JLabel label, String username) {
 		this.label = label;
@@ -28,12 +29,16 @@ class TypingLabelController implements Runnable {
 
 	@Override
 	public void run() {
-		while (true) {
+		while (alive) {
 			timeElapsed = System.currentTimeMillis() - lastTypingMessageTimer;
 			if (timeElapsed > 3000) {
 				label.setText("");
 			}
 		}
+	}
+
+	public void shutdown() {
+		alive = false;
 	}
 
 }

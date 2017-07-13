@@ -1,6 +1,5 @@
 package server.gui;
 
-import java.awt.AWTException;
 import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.Graphics2D;
@@ -28,17 +27,17 @@ import server.Server;
 
 class SwingServer implements ActionListener {
 	private Server server;
-	private JButton start = new JButton("start");
-	private JButton stop = new JButton("stop");
+	private JButton start = new JButton("Start");
+	private JButton stop = new JButton("Stop");
 	private JLabel info = new JLabel();
 	private JFrame controlFrame = new JFrame();
 	private TrayIcon trayIcon;
 	private PopupMenu menu;
-	
-	public SwingServer() throws IOException{
+
+	public SwingServer() throws IOException {
 		createControllFrame();
 	}
-	
+
 	private void createControllFrame() throws IOException {
 		if (SystemTray.isSupported()) {
 			showSystemTrayGUI();
@@ -46,54 +45,51 @@ class SwingServer implements ActionListener {
 			showSwingGUI();
 		}
 	}
-	
+
 	private void showSystemTrayGUI() throws IOException {
 		SystemTray sysTray = SystemTray.getSystemTray();
 
-		Image systemTrayImage = ImageIO
-				.read(getClass().getClassLoader().getResource("client/gui/emojiImages/274e.png"));
-		Image resizedSystemTrayImage = getScaledIcon(systemTrayImage);
-
 		menu = new PopupMenu();
-		MenuItem start = new MenuItem("Start");
-		menu.add(start);
 
-		start.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				start();
-				try {
-					Image systemTrayImage = ImageIO
-							.read(getClass().getClassLoader().getResource("client/gui/emojiImages/23fa.png"));
-					trayIcon.setImage(getScaledIcon(systemTrayImage));
-					MenuItem stop = new MenuItem("Stop");
-					menu.remove(0);
-
-					stop.addActionListener(new ActionListener() {
-						public void actionPerformed(ActionEvent e) {
-							stop();
-						}
-					});
-
-					menu.add(stop);
-					trayIcon.setPopupMenu(menu);
-				} catch (IOException e1) {
-					e1.printStackTrace();
-				}
-
-			}
-		});
-
-		
-
-		trayIcon = new TrayIcon(resizedSystemTrayImage, "JChatServer", menu);
-
+		start();
 		try {
+			Image systemTrayImage = ImageIO
+					.read(getClass().getClassLoader().getResource("client/gui/emojiImages/23fa.png"));
+			trayIcon = new TrayIcon(systemTrayImage, "JChatServer", menu);
+			trayIcon.setImage(getScaledIcon(systemTrayImage));
+			MenuItem restart = new MenuItem("Restart");
+			MenuItem restartAndCleanLogs = new MenuItem("Restart & clean Logs");
+			MenuItem stop = new MenuItem("Stop");
+
+			stop.addActionListener(new ActionListener() {
+				public void actionPerformed(ActionEvent e) {
+					stop();
+				}
+			});
+
+			restart.addActionListener(new ActionListener() {
+				public void actionPerformed(ActionEvent e) {
+					restart();
+				}
+			});
+
+			restartAndCleanLogs.addActionListener(new ActionListener() {
+				public void actionPerformed(ActionEvent e) {
+					restartAndCleanLogs();
+				}
+			});
+
+			menu.add(restart);
+			menu.add(restartAndCleanLogs);
+			menu.add(stop);
+
+			trayIcon.setPopupMenu(menu);
 			sysTray.add(trayIcon);
-		} catch (AWTException e) {
-			System.out.println(e.getMessage());
+		} catch (Exception e1) {
+			e1.printStackTrace();
 		}
 	}
-	
+
 	private void showSwingGUI() {
 		controlFrame.setTitle("Chat Server");
 		controlFrame.setLayout(new BorderLayout());
@@ -128,22 +124,22 @@ class SwingServer implements ActionListener {
 
 	@Override
 	public void actionPerformed(ActionEvent e) {
-		if(e.getSource() == start){
+		if (e.getSource() == start) {
 			start();
 		}
-		
-		if(e.getSource() == stop){
+
+		if (e.getSource() == stop) {
 			stop();
 		}
-		
+
 	}
 
-	private void start(){
+	private void start() {
 		try {
-			if(server == null){
+			if (server == null) {
 				server = new Server();
 				info.setText("Server is running!");
-				
+
 			} else {
 				start.setText("Server running");
 			}
@@ -152,13 +148,23 @@ class SwingServer implements ActionListener {
 		}
 	}
 
-	private void stop() {
-		try {
-			server.stop();
-		} catch (IOException e1) {
-			e1.printStackTrace();
-		}
+	public void stop() {
+		System.exit(0);
 		info.setText("Server stopped!");
+	}
+
+	private void restartAndCleanLogs() {
+		server.cleanLogs();
+		restart();
+	}
+
+	private void restart() {
+		try {
+			server.shutdown();
+			server = new Server();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 
 	private Image getScaledIcon(Image srcImg) {

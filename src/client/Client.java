@@ -80,4 +80,8 @@ public class Client implements ClientConnectionMessageReceiver {
 		messageReceiver.clientShutdownMessage();
 	}
 
+	public void shutdown() {
+		clientConnection.shutdown();
+	}
+
 }

@@ -148,7 +148,16 @@ class ClientConnection implements Runnable {
 		shutdown();
 	}
 
-	private void shutdown() {
+	public void threadShutdown() {
+		alive = false;
+		try {
+			in.close();
+			out.close();
+		} catch (IOException e) {
+		}
+	}
+
+	public void shutdown() {
 		clientMessageListener.clientShutdown(this);
 	}
 

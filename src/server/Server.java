@@ -21,6 +21,7 @@ public class Server implements ClientConnectionListener, ClientMessageListener {
 	private static File logFile = new File(System.getProperty("user.home") + "/Chat/logs.txt");
 	private static List<TextMessage> allMessagesList = new ArrayList<TextMessage>();
 	private ConnectionAcceptorThread connectionAcceptorThread;
+	private boolean shutdown = false;
 	private static final String KICKPHRASE = "***blacklist";
 
 	@SuppressWarnings("unchecked")
@@ -63,15 +64,17 @@ public class Server implements ClientConnectionListener, ClientMessageListener {
 	}
 
 	private void sendActiveClients() {
-		List<User> activeUsers = new ArrayList<User>();
-		for (ClientConnection cc : clients) {
-			activeUsers.add(new User(cc.getName(), cc.getLocked()));
-		}
-		for (ClientConnection cc : clients) {
-			try {
-				cc.sendActiveUsers(activeUsers);
-			} catch (IOException e) {
-				System.out.println("Could not send active Users!");
+		if (shutdown != true) {
+			List<User> activeUsers = new ArrayList<User>();
+			for (ClientConnection cc : clients) {
+				activeUsers.add(new User(cc.getName(), cc.getLocked()));
+			}
+			for (ClientConnection cc : clients) {
+				try {
+					cc.sendActiveUsers(activeUsers);
+				} catch (IOException e) {
+					System.out.println("Could not send active Users!");
+				}
 			}
 		}
 	}
@@ -98,8 +101,7 @@ public class Server implements ClientConnectionListener, ClientMessageListener {
 			} else {
 				allMessagesList.add(message);
 				List<TextMessage> messagesToWrite = allMessagesList;
-				try {
-					FileOutputStream fos = new FileOutputStream(logFile);
+				try (FileOutputStream fos = new FileOutputStream(logFile);) {
 					ObjectOutputStream oos = new ObjectOutputStream(fos);
 					oos.writeObject(messagesToWrite);
 					oos.close();
@@ -143,6 +145,45 @@ public class Server implements ClientConnectionListener, ClientMessageListener {
 
 	static File getLogFile() {
 		return logFile;
+	}
+
+	public void cleanLogs() {
+		List<TextMessage> messagesToWrite = new ArrayList<TextMessage>();
+		try (FileOutputStream fos = new FileOutputStream(logFile);) {
+			ObjectOutputStream oos = new ObjectOutputStream(fos);
+			oos.writeObject(messagesToWrite);
+			oos.close();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+
+	public void shutdown() {
+		shutdown = true;
+		for (int i = 0; i < clients.size(); i++) {
+			try {
+				clients.get(i).threadShutdown();
+			} catch (IndexOutOfBoundsException e) {
+				e.printStackTrace();
+
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
+
+		for (int i = 0; i < clients.size(); i++) {
+			try {
+				clients.get(i).getSocket().close();
+			} catch (IndexOutOfBoundsException e) {
+				e.printStackTrace();
+
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
+
+		connectionAcceptorThread.shutdown();
+		clients.clear();
 	}
 
 }

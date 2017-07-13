@@ -5,6 +5,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketException;
 import java.net.URL;
 import java.security.GeneralSecurityException;
 import java.security.KeyStore;
@@ -68,6 +69,8 @@ class ConnectionAcceptorThread implements Runnable {
 				if (!blacklist.contains(s.getRemoteSocketAddress().toString().substring(0, 13))) {
 					clientConnectionListener.clientConnectionReceived(s);
 				}
+			} catch (SocketException e2) {
+				System.out.println("Socket closed!");
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
@@ -77,5 +80,14 @@ class ConnectionAcceptorThread implements Runnable {
 	public void addClientToBlacklist(String ip) {
 		System.out.println("added: " + ip.split(":")[0]);
 		blacklist.add(ip.split(":")[0]);
+	}
+
+	public void shutdown() {
+		alive = false;
+		try {
+			serverSocket.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 }

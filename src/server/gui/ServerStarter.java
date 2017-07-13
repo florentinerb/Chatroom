@@ -32,7 +32,7 @@ class ServerStarter {
 		    if(channel.tryLock() == null){
 				System.out.println("Already Running...");
 		    } else {
-		    	new SwingServer();
+				new SwingServer();
 		    }
 		} catch (Exception e) {
 		    System.out.println(e.toString());
