@@ -11,6 +11,7 @@ import java.net.Socket;
 import java.util.ArrayList;
 import java.util.List;
 
+import protocol.FileMessage;
 import protocol.TextMessage;
 import protocol.TypingState;
 import protocol.User;
@@ -184,6 +185,13 @@ public class Server implements ClientConnectionListener, ClientMessageListener {
 
 		connectionAcceptorThread.shutdown();
 		clients.clear();
+	}
+
+	@Override
+	public void fileMessageReceived(FileMessage fileMessage) {
+		for (ClientConnection client : clients) {
+			client.sendFileMessage(fileMessage);
+		}
 	}
 
 }

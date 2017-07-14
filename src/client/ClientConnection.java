@@ -7,6 +7,7 @@ import java.io.ObjectOutputStream;
 import java.net.Socket;
 import java.net.URL;
 import java.net.UnknownHostException;
+import java.nio.file.Files;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
@@ -18,8 +19,10 @@ import javax.net.SocketFactory;
 import javax.net.ssl.SSLSocketFactory;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.FilenameUtils;
 
 import protocol.EncryptDecryptTextMessage;
+import protocol.FileMessage;
 import protocol.TextMessage;
 import protocol.TypingState;
 import protocol.User;
@@ -40,7 +43,6 @@ class ClientConnection implements Runnable {
 	ClientConnection(ClientConnectionMessageReceiver clientConnectionMessageReceiver, String name, String serverIp)
 			throws IOException, ClassNotFoundException {
 		this.clientConnectionMessageReceiver = clientConnectionMessageReceiver;
-
 
 		certificateCheck();
 		checkOptionalServerIp(serverIp);
@@ -106,7 +108,8 @@ class ClientConnection implements Runnable {
 
 	public void sendUserState(UserState userState) throws IOException {
 		try {
-			out.writeObject(userState);
+			if (!s.isClosed())
+				out.writeObject(userState);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -137,6 +140,10 @@ class ClientConnection implements Runnable {
 					clientConnectionMessageReceiver.activeUsersReceivedFromServer((ArrayList<User>) receivedObject);
 				} else if (receivedObject instanceof TypingState) {
 					clientConnectionMessageReceiver.typingStateReceivedFromServer((TypingState) receivedObject);
+				} else if (receivedObject instanceof FileMessage) {
+					FileMessage fileMessage = (FileMessage) receivedObject;
+					String fileName = writeFileIntoFolder(fileMessage);
+					clientConnectionMessageReceiver.fileMessageReceived(fileMessage.getSender(), fileName);
 				}
 			} catch (IOException | ClassNotFoundException e) {
 				failCount++;
@@ -153,6 +160,31 @@ class ClientConnection implements Runnable {
 		}
 	}
 
+	private String writeFileIntoFolder(FileMessage fileMessage) {
+		File f = new File(System.getProperty("user.home") + "/Chat/ReceivedFiles/" + fileMessage.getName() + "."
+				+ fileMessage.getFileType());
+		f = getUniqueFilename(f);
+
+		byte[] content = fileMessage.getFile();
+
+		try {
+			Files.write(f.toPath(), content);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		return f.getName();
+	}
+
+	private File getUniqueFilename(File file) {
+		String baseName = FilenameUtils.getBaseName(file.getName());
+		String extension = FilenameUtils.getExtension(file.getName());
+		int counter = 1;
+		while (file.exists()) {
+			file = new File(file.getParent(), baseName + "-" + (counter++) + "." + extension);
+		}
+		return file;
+	}
+
 	public void shutdown() {
 		alive = false;
 	}
@@ -165,4 +197,11 @@ class ClientConnection implements Runnable {
 		this.s = s;
 	}
 
+	public void sendFile(FileMessage fileMessage) {
+		try {
+			out.writeObject(fileMessage);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
 }

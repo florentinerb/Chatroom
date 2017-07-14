@@ -1,6 +1,7 @@
 package client.gui;
 
 import java.awt.Color;
+import java.io.File;
 
 public interface ChatFrameActionReceiver {
 
@@ -13,5 +14,7 @@ public interface ChatFrameActionReceiver {
 	public void messageSent(String message, Color color, String receiver);
 
 	public void typing();
+
+	public void sendFile(File selectedFile);
 
 }

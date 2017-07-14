@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.net.UnknownHostException;
 import java.util.List;
 
+import protocol.FileMessage;
 import protocol.TextMessage;
 import protocol.TypingState;
 import protocol.User;
@@ -80,8 +81,17 @@ public class Client implements ClientConnectionMessageReceiver {
 		messageReceiver.clientShutdownMessage();
 	}
 
+	@Override
+	public void fileMessageReceived(String sender, String fileName) {
+		messageReceiver.fileMessageReceived(sender, fileName);
+	}
+
 	public void shutdown() {
 		clientConnection.shutdown();
+	}
+
+	public void sendFile(FileMessage fileMessage) {
+		clientConnection.sendFile(fileMessage);
 	}
 
 }

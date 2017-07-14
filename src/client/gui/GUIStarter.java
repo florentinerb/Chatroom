@@ -41,18 +41,19 @@ class GUIStarter {
 
 	private static boolean tryLock() throws FileNotFoundException {
 		File theDir = new File(System.getProperty("user.home") + "/Chat");
-		if (!theDir.exists()) {
-			boolean result = false;
-			try {
+		File theFileDir = new File(System.getProperty("user.home") + "/Chat/ReceivedFiles");
+
+		try {
+			if (!theDir.exists()) {
 				theDir.mkdir();
-				result = true;
-			} catch (SecurityException se) {
-				System.out.println("Error occured while starting the application");
 			}
-			if (result) {
-				System.out.println("DIR created");
+			if (!theFileDir.exists()) {
+				theFileDir.mkdir();
 			}
+		} catch (SecurityException se) {
+			System.out.println("Error occured while starting the application");
 		}
+
 		try {
 			lockFile = new RandomAccessFile(System.getProperty("user.home") + "/Chat/singleChat.class", "rw");
 			FileChannel channel = lockFile.getChannel();
@@ -64,7 +65,6 @@ class GUIStarter {
 			e.printStackTrace();
 			return false;
 		}
-
 		return true;
 	}
 }

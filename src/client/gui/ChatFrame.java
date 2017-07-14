@@ -2,8 +2,8 @@ package client.gui;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.Desktop;
 import java.awt.Dimension;
-import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -21,6 +21,7 @@ import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
+import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JList;
@@ -80,6 +81,9 @@ public class ChatFrame extends BasicFrame implements ActionListener {
 	private ChatFrameActionReceiver actionReceiver;
 	private Style leftAlign;
 	private Style rightAlign;
+	private JButton sendFile;
+	private JButton receivedFilesButton;
+	private JPanel topButtonsPanel;
 
 	public ChatFrame(String userName, Color userColor, final ChatFrameActionReceiver actionReceiver) {
 		feed = new AutoreplaceingEmojiFeed();
@@ -97,7 +101,8 @@ public class ChatFrame extends BasicFrame implements ActionListener {
 		emojiPanel = new JPanel();
 		chatFrame = new JFrame();
 		userStates = new JList<User>(activeUsersListModel);
-		send = new JButton("send");
+		send = new JButton();
+		sendFile = new JButton();
 		autoScrollCheckbox = new JCheckBox("AutoScroll", true);
 		typingLabel = new JLabel("");
 		settingsButton = new JButton();
@@ -109,8 +114,12 @@ public class ChatFrame extends BasicFrame implements ActionListener {
 		chatFrame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
 		chatFrame.setMinimumSize(new Dimension(445, 200));
 
-		send.setSize(30, 10);
+		sendFile.setIcon(FileToImageConverter.fileToImageIcon(new File("1f4c1.png"), 20, 20));
+		send.setIcon(FileToImageConverter.fileToImageIcon(new File("1f4ac.png"), 15, 15));
+		send.setSize(20, 20);
 		send.addActionListener(this);
+		sendFile.setSize(20, 20);
+		sendFile.addActionListener(this);
 		settingsButton.addActionListener(this);
 		autoScrollCheckbox.addActionListener(this);
 		feed.setEditable(false);
@@ -122,15 +131,18 @@ public class ChatFrame extends BasicFrame implements ActionListener {
 		topPanel.add(typingLabel);
 
 		buttonPanel = new JPanel();
-		buttonPanel.setLayout(new FlowLayout(FlowLayout.RIGHT));
-		buttonPanel.add(send);
+		buttonPanel.setLayout(new BorderLayout());
+		buttonPanel.add(send, BorderLayout.EAST);
+		buttonPanel.add(sendFile, BorderLayout.WEST);
 
 		inputMessage.setBorder(new RoundedCornerBorder());
 		chatActionPanel = new JPanel();
 		chatActionPanel.setLayout(new BorderLayout());
 		chatActionPanel.add(receiverList, BorderLayout.WEST);
 		chatActionPanel.add(inputMessage, BorderLayout.CENTER);
-		chatActionPanel.add(send, BorderLayout.EAST);
+		chatActionPanel.add(inputMessage, BorderLayout.CENTER);
+
+		chatActionPanel.add(buttonPanel, BorderLayout.EAST);
 
 		scrollPane = new JScrollPane(feed, JScrollPane.VERTICAL_SCROLLBAR_ALWAYS,
 				JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
@@ -256,10 +268,20 @@ public class ChatFrame extends BasicFrame implements ActionListener {
 
 		favEmojiScrollPane.setPreferredSize(new Dimension(70, 0));
 
+		receivedFilesButton = new JButton();
+		receivedFilesButton.setIcon(FileToImageConverter.fileToImageIcon(new File("1f5c4.png"), 15, 15));
+		receivedFilesButton.setBorder(new EmptyBorder(8, 8, 8, 8));
+		receivedFilesButton.addActionListener(this);
+
 		settingsButton.setIcon(FileToImageConverter.fileToImageIcon(new File("2699.png"), 15, 15));
+		settingsButton.setBorder(new EmptyBorder(8, 8, 8, 8));
+
+		topButtonsPanel = new JPanel();
+		topButtonsPanel.add(settingsButton, BorderLayout.NORTH);
+		topButtonsPanel.add(receivedFilesButton, BorderLayout.SOUTH);
 
 		favEmojiList.addMouseListener(mouseListener);
-		emojiPanel.add(settingsButton, BorderLayout.NORTH);
+		emojiPanel.add(topButtonsPanel, BorderLayout.NORTH);
 		emojiPanel.add(favEmojiScrollPane, BorderLayout.CENTER);
 	}
 
@@ -325,6 +347,23 @@ public class ChatFrame extends BasicFrame implements ActionListener {
 		}
 	}
 
+	public void fileMessageReceived(String sender, String fileName) {
+		try {
+			Boolean alignRight;
+			if (userName.equals(sender)) {
+				alignRight = true;
+			} else {
+				alignRight = false;
+			}
+			appendMessage("\n", alignRight);
+			appendName("\n" + sender + " hat die Datei \"" + fileName + "\" versendet!\n", alignRight);
+			lastMessage = new TextMessage("", sender, Color.BLACK, "");
+			scrollToBottom();
+		} catch (BadLocationException | IOException e) {
+			e.printStackTrace();
+		}
+	}
+
 	public void align(Boolean alignRight) {
 		StyledDocument document = (StyledDocument) feed.getDocument();
 		if (alignRight) {
@@ -340,6 +379,15 @@ public class ChatFrame extends BasicFrame implements ActionListener {
 			if (autoScrollCheckbox.isSelected() == true) {
 				scrollToBottom();
 			}
+		}
+
+		if (e.getSource() == sendFile) {
+			JFileChooser chooser = new JFileChooser(System.getProperty("user.home") + "/Desktop");
+			chooser.setPreferredSize(new Dimension(700, 700));
+			if (chooser.showOpenDialog(chatFrame) == JFileChooser.APPROVE_OPTION) {
+				actionReceiver.sendFile(chooser.getSelectedFile());
+			}
+
 		}
 
 		if (e.getSource() == send) {
@@ -371,6 +419,16 @@ public class ChatFrame extends BasicFrame implements ActionListener {
 		if (e.getSource() == reconnectButton) {
 			actionReceiver.reconnectWasCalled();
 		}
+
+		if (e.getSource() == receivedFilesButton) {
+			try {
+				Desktop.getDesktop().open(new File(System.getProperty("user.home") + "/Chat/ReceivedFiles/"));
+			} catch (IOException e1) {
+				e1.printStackTrace();
+			}
+		}
+
+
 
 	}
 
@@ -451,7 +509,7 @@ public class ChatFrame extends BasicFrame implements ActionListener {
 
 	public void clientShutdownMessage() {
 		chatActionPanel.remove(inputMessage);
-		chatActionPanel.remove(send);
+		chatActionPanel.remove(buttonPanel);
 		chatActionPanel.remove(receiverList);
 		reconnectButton = new JButton("Reconnect");
 		chatActionPanel.add(reconnectButton, BorderLayout.CENTER);
@@ -490,4 +548,5 @@ public class ChatFrame extends BasicFrame implements ActionListener {
 		tlp.shutdown();
 		chatFrame.dispose();
 	}
+
 }

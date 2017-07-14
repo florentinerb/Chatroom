@@ -14,6 +14,7 @@ import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SealedObject;
 
 import protocol.EncryptDecryptTextMessage;
+import protocol.FileMessage;
 import protocol.TextMessage;
 import protocol.TypingState;
 import protocol.User;
@@ -139,6 +140,11 @@ class ClientConnection implements Runnable {
 					TypingState typingState = (TypingState) inObject;
 					clientMessageListener.typingStateReceived(typingState);
 				}
+				if (inObject instanceof FileMessage) {
+					FileMessage fileMessage = (FileMessage) inObject;
+					clientMessageListener.fileMessageReceived(fileMessage);
+				}
+
 			} catch (Exception e) {
 				System.out.println("Client disconnected!");
 				alive = false;
@@ -179,6 +185,14 @@ class ClientConnection implements Runnable {
 
 	public void setName(String name) {
 		this.name = name;
+	}
+
+	public void sendFileMessage(FileMessage fileMessage) {
+		try {
+			out.writeObject(fileMessage);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 
 }

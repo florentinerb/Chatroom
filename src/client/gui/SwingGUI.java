@@ -1,15 +1,20 @@
 package client.gui;
 
 import java.awt.Color;
+import java.io.File;
 import java.io.IOException;
 import java.net.UnknownHostException;
+import java.nio.file.Files;
 import java.util.List;
 
 import javax.swing.text.BadLocationException;
 
+import org.apache.commons.io.FilenameUtils;
+
 import client.Client;
 import client.MessageReceiver;
 import client.configuration.Configuration;
+import protocol.FileMessage;
 import protocol.TextMessage;
 import protocol.TypingState;
 import protocol.User;
@@ -59,7 +64,6 @@ class SwingGUI implements MessageReceiver, Runnable, LockMessageReceiver, ChatFr
 		chatFrameInstance.logsReceived(logs);
 	}
 
-	// TODO Not Working
 	@Override
 	public void activeUsersReceived(List<User> activeUsers) {
 		chatFrameInstance.activeUsersReceived(activeUsers);
@@ -93,6 +97,11 @@ class SwingGUI implements MessageReceiver, Runnable, LockMessageReceiver, ChatFr
 	@Override
 	public void clientShutdownMessage() {
 		chatFrameInstance.clientShutdownMessage();
+	}
+
+	@Override
+	public void fileMessageReceived(String sender, String fileName) {
+		chatFrameInstance.fileMessageReceived(sender, fileName);
 	}
 
 	@Override
@@ -169,6 +178,20 @@ class SwingGUI implements MessageReceiver, Runnable, LockMessageReceiver, ChatFr
 			} catch (BadLocationException | IOException e) {
 				e.printStackTrace();
 			}
+		}
+	}
+
+	@Override
+	public void sendFile(File selectedFile) {
+
+		byte[] content;
+		try {
+			content = Files.readAllBytes(selectedFile.toPath());
+
+			client.sendFile(new FileMessage(content, FilenameUtils.getExtension(selectedFile.getName()),
+					FilenameUtils.removeExtension(selectedFile.getName()), userName));
+		} catch (IOException e) {
+			e.printStackTrace();
 		}
 	}
 }

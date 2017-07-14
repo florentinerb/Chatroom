@@ -20,4 +20,6 @@ public interface MessageReceiver {
 
 	void clientShutdownMessage();
 
+	void fileMessageReceived(String sender, String fileName);
+
 }
