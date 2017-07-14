@@ -20,7 +20,7 @@ import javax.swing.JProgressBar;
 import javax.swing.JScrollPane;
 import javax.swing.WindowConstants;
 
-public class SettingsFrame extends Frame implements ActionListener, ConversionFinishedNotifier {
+public class SettingsFrame extends BasicFrame implements ActionListener, ConversionFinishedNotifier {
 
 	private JButton removeEmojiButton;
 	private JFrame settingsFrame;

@@ -33,7 +33,7 @@ import javax.swing.event.ChangeListener;
 
 import client.configuration.Configuration;
 
-public class LoginFrame extends Frame implements ActionListener {
+public class LoginFrame extends BasicFrame implements ActionListener {
 
 	private JButton login;
 	private JFrame loginFrame;

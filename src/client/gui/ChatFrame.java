@@ -43,7 +43,7 @@ import protocol.TextMessage;
 import protocol.TypingState;
 import protocol.User;
 
-public class ChatFrame extends Frame implements ActionListener {
+public class ChatFrame extends BasicFrame implements ActionListener {
 
 	private static double antiSpamTime = 2;
 	private JComboBox<String> receiverList;

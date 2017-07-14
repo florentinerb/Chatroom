@@ -10,7 +10,7 @@ import java.util.List;
 import javax.imageio.ImageIO;
 import javax.swing.JFrame;
 
-public class Frame {
+public class BasicFrame {
 
 	public void centerWindow(JFrame frame) {
 		Dimension dim = Toolkit.getDefaultToolkit().getScreenSize();
